@@ -14,7 +14,7 @@
 ### 3. Update info line in PreviewSurat (`src/pages/PreviewSurat.tsx`)
 
 - Change line 77 from: `NISN: {surat.nisn} · Maret 2026`
-- To: `NISN: {surat.nisn} · No: {surat.nomorSurat} · {date Month Year} | Dibuat: 04/03/2026 | Diedit: 04/03/2026`
+- To: `NISN: {surat.nisn} · No: {surat.nomorSurat} · {tanggal bulan tahun} | Dibuat: 04/03/2026 | Diedit: 04/03/2026`
 - Format dates with `toLocaleDateString('id-ID')`
 
 ### 4. Update info line in DaftarSurat (`src/pages/DaftarSurat.tsx`)
