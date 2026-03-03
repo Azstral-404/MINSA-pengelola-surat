@@ -1,19 +1,20 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { generateId, slugify, JenisSurat } from '@/lib/store';
+import { generateId, slugify, JenisSurat, COLOR_THEMES, ColorTheme } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Trash2, Plus, Upload, Moon, Sun } from 'lucide-react';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus } from 'lucide-react';
 import { toast } from 'sonner';
 
 const Pengaturan = () => {
-  const { data, updateData, setTheme } = useApp();
+  const { data, updateData, setTheme, setColorTheme } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const templateRef = useRef<HTMLDivElement>(null);
   const isDark = data.settings.theme === 'dark';
 
   const [nipInput, setNipInput] = useState('');
@@ -27,103 +28,83 @@ const Pengaturan = () => {
   const [editJudul, setEditJudul] = useState('');
   const [editIsi, setEditIsi] = useState('');
 
-  // === Kepala Madrasah ===
+  // Header state
+  const h = data.settings.suratHeader;
+  const updateHeader = (field: string, value: string) => {
+    updateData(d => ({
+      ...d, settings: { ...d.settings, suratHeader: { ...d.settings.suratHeader, [field]: value } },
+    }));
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => updateHeader('logoUrl', reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Kepala Madrasah
   const addKepala = () => {
     if (!nipInput.trim() || !namaInput.trim()) { toast.error('NIP dan Nama wajib diisi'); return; }
     updateData(d => ({
-      ...d,
-      settings: {
-        ...d.settings,
-        kepalaMadrasah: [...d.settings.kepalaMadrasah, { id: generateId(), nip: nipInput.trim(), nama: namaInput.trim() }],
-      },
+      ...d, settings: { ...d.settings, kepalaMadrasah: [...d.settings.kepalaMadrasah, { id: generateId(), nip: nipInput.trim(), nama: namaInput.trim() }] },
     }));
     setNipInput(''); setNamaInput('');
     toast.success('Kepala Madrasah ditambahkan');
   };
-
   const deleteKepala = (id: string) => {
-    updateData(d => ({
-      ...d,
-      settings: { ...d.settings, kepalaMadrasah: d.settings.kepalaMadrasah.filter(k => k.id !== id) },
-    }));
+    updateData(d => ({ ...d, settings: { ...d.settings, kepalaMadrasah: d.settings.kepalaMadrasah.filter(k => k.id !== id) } }));
     toast.success('Dihapus');
   };
 
-  // === Tahun Ajaran ===
+  // Tahun Ajaran
   const addTahun = () => {
     if (!tahunInput.trim()) { toast.error('Tahun ajaran wajib diisi'); return; }
     updateData(d => ({
-      ...d,
-      settings: {
-        ...d.settings,
-        tahunAjaran: [...d.settings.tahunAjaran, { id: generateId(), label: tahunInput.trim() }],
-      },
+      ...d, settings: { ...d.settings, tahunAjaran: [...d.settings.tahunAjaran, { id: generateId(), label: tahunInput.trim() }] },
     }));
     setTahunInput('');
     toast.success('Tahun ajaran ditambahkan');
   };
-
   const deleteTahun = (id: string) => {
-    updateData(d => ({
-      ...d,
-      settings: { ...d.settings, tahunAjaran: d.settings.tahunAjaran.filter(t => t.id !== id) },
-    }));
+    updateData(d => ({ ...d, settings: { ...d.settings, tahunAjaran: d.settings.tahunAjaran.filter(t => t.id !== id) } }));
     toast.success('Dihapus');
   };
 
-  // === Jenis Surat ===
+  // Jenis Surat
   const addJenisSurat = () => {
-    if (!jenisLabel.trim()) { toast.error('Label jenis surat wajib diisi'); return; }
-    if (!jenisIsi.trim()) { toast.error('Template isi surat wajib diisi'); return; }
+    if (!jenisLabel.trim()) { toast.error('Label wajib diisi'); return; }
+    if (!jenisIsi.trim()) { toast.error('Template isi wajib diisi'); return; }
     const slug = slugify(jenisLabel.trim());
-    if (data.settings.jenisSurat.some(j => j.slug === slug)) {
-      toast.error('Jenis surat dengan nama serupa sudah ada'); return;
-    }
+    if (data.settings.jenisSurat.some(j => j.slug === slug)) { toast.error('Sudah ada'); return; }
     updateData(d => ({
-      ...d,
-      settings: {
-        ...d.settings,
-        jenisSurat: [...d.settings.jenisSurat, {
-          id: generateId(), slug,
-          label: jenisLabel.trim(),
-          templateJudul: jenisJudul.trim() || jenisLabel.trim().toUpperCase(),
-          templateIsi: jenisIsi.trim(),
-          createdAt: new Date().toISOString(),
-        }],
-      },
+      ...d, settings: { ...d.settings, jenisSurat: [...d.settings.jenisSurat, {
+        id: generateId(), slug, label: jenisLabel.trim(),
+        templateJudul: jenisJudul.trim() || jenisLabel.trim().toUpperCase(),
+        templateIsi: jenisIsi.trim(), createdAt: new Date().toISOString(),
+      }] },
     }));
     setJenisLabel(''); setJenisJudul(''); setJenisIsi('');
     toast.success('Jenis surat ditambahkan');
   };
-
   const deleteJenisSurat = (id: string) => {
     updateData(d => ({
-      ...d,
-      settings: { ...d.settings, jenisSurat: d.settings.jenisSurat.filter(j => j.id !== id) },
+      ...d, settings: { ...d.settings, jenisSurat: d.settings.jenisSurat.filter(j => j.id !== id) },
       surat: d.surat.filter(s => s.jenisSuratId !== id),
     }));
-    toast.success('Jenis surat dan semua suratnya dihapus');
+    toast.success('Dihapus');
   };
-
   const startEditJenis = (js: JenisSurat) => {
-    setEditingJenis(js.id);
-    setEditLabel(js.label);
-    setEditJudul(js.templateJudul);
-    setEditIsi(js.templateIsi);
+    setEditingJenis(js.id); setEditLabel(js.label); setEditJudul(js.templateJudul); setEditIsi(js.templateIsi);
   };
-
   const saveEditJenis = () => {
     if (!editingJenis) return;
     updateData(d => ({
-      ...d,
-      settings: {
-        ...d.settings,
-        jenisSurat: d.settings.jenisSurat.map(j =>
-          j.id === editingJenis
-            ? { ...j, label: editLabel.trim(), templateJudul: editJudul.trim(), templateIsi: editIsi.trim(), slug: slugify(editLabel.trim()) }
-            : j
-        ),
-      },
+      ...d, settings: { ...d.settings, jenisSurat: d.settings.jenisSurat.map(j =>
+        j.id === editingJenis ? { ...j, label: editLabel.trim(), templateJudul: editJudul.trim(), templateIsi: editIsi.trim(), slug: slugify(editLabel.trim()) } : j
+      ) },
     }));
     setEditingJenis(null);
     toast.success('Template diperbarui');
@@ -136,27 +117,33 @@ const Pengaturan = () => {
       const mammoth = await import('mammoth');
       const arrayBuffer = await file.arrayBuffer();
       const result = await mammoth.convertToHtml({ arrayBuffer });
-      if (editingJenis) {
-        setEditIsi(result.value);
-      } else {
-        setJenisIsi(result.value);
-      }
-      toast.success('Konten DOCX berhasil diimpor');
-    } catch {
-      toast.error('Gagal mengimpor file DOCX');
-    }
+      if (editingJenis) setEditIsi(result.value);
+      else setJenisIsi(result.value);
+      toast.success('DOCX berhasil diimpor');
+    } catch { toast.error('Gagal mengimpor DOCX'); }
     e.target.value = '';
   };
+
+  // ContentEditable handler for rich paste
+  const handleTemplatePaste = (e: React.ClipboardEvent<HTMLDivElement>, isEdit: boolean) => {
+    e.preventDefault();
+    const html = e.clipboardData.getData('text/html');
+    const text = e.clipboardData.getData('text/plain');
+    const content = html || text;
+    document.execCommand('insertHTML', false, content);
+  };
+
+  const getTemplateHtml = (ref: HTMLDivElement | null) => ref?.innerHTML || '';
 
   return (
     <div className="space-y-6 max-w-4xl">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
-
       <Tabs defaultValue="kepala">
-        <TabsList className="grid grid-cols-4 w-full">
-          <TabsTrigger value="kepala">Kepala Madrasah</TabsTrigger>
+        <TabsList className="grid grid-cols-5 w-full">
+          <TabsTrigger value="kepala">Kepala</TabsTrigger>
           <TabsTrigger value="tahun">Tahun Ajaran</TabsTrigger>
           <TabsTrigger value="surat">Jenis Surat</TabsTrigger>
+          <TabsTrigger value="header">Header Surat</TabsTrigger>
           <TabsTrigger value="tema">Tema</TabsTrigger>
         </TabsList>
 
@@ -166,27 +153,16 @@ const Pengaturan = () => {
             <CardHeader><CardTitle>Kepala Madrasah</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <Label>NIP</Label>
-                  <Input value={nipInput} onChange={e => setNipInput(e.target.value)} placeholder="NIP" />
-                </div>
-                <div>
-                  <Label>Nama</Label>
-                  <Input value={namaInput} onChange={e => setNamaInput(e.target.value)} placeholder="Nama lengkap" />
-                </div>
+                <div><Label>NIP</Label><Input value={nipInput} onChange={e => setNipInput(e.target.value)} placeholder="NIP" /></div>
+                <div><Label>Nama</Label><Input value={namaInput} onChange={e => setNamaInput(e.target.value)} placeholder="Nama lengkap" /></div>
               </div>
               <Button onClick={addKepala} size="sm"><Plus className="mr-1 h-4 w-4" />Tambah</Button>
               {data.settings.kepalaMadrasah.length > 0 && (
                 <div className="space-y-2 mt-4">
                   {data.settings.kepalaMadrasah.map(k => (
                     <div key={k.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                      <div>
-                        <div className="font-medium text-sm">{k.nama}</div>
-                        <div className="text-xs text-muted-foreground">NIP: {k.nip}</div>
-                      </div>
-                      <Button variant="ghost" size="icon" onClick={() => deleteKepala(k.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <div><div className="font-medium text-sm">{k.nama}</div><div className="text-xs text-muted-foreground">NIP: {k.nip}</div></div>
+                      <Button variant="ghost" size="icon" onClick={() => deleteKepala(k.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   ))}
                 </div>
@@ -209,9 +185,7 @@ const Pengaturan = () => {
                   {data.settings.tahunAjaran.map(t => (
                     <div key={t.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
                       <span className="text-sm font-medium">{t.label}</span>
-                      <Button variant="ghost" size="icon" onClick={() => deleteTahun(t.id)}>
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <Button variant="ghost" size="icon" onClick={() => deleteTahun(t.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   ))}
                 </div>
@@ -230,20 +204,22 @@ const Pengaturan = () => {
               {!editingJenis && (
                 <div className="space-y-3 border border-border rounded-lg p-4">
                   <h3 className="font-medium text-sm">Tambah Jenis Surat Baru</h3>
+                  <div><Label>Label</Label><Input value={jenisLabel} onChange={e => setJenisLabel(e.target.value)} placeholder="cth: Surat Pindah" /></div>
+                  <div><Label>Judul Surat (opsional)</Label><Input value={jenisJudul} onChange={e => setJenisJudul(e.target.value)} placeholder="cth: SURAT KETERANGAN PINDAH" /></div>
                   <div>
-                    <Label>Label (nama jenis surat)</Label>
-                    <Input value={jenisLabel} onChange={e => setJenisLabel(e.target.value)} placeholder="cth: Surat Pindah" />
-                  </div>
-                  <div>
-                    <Label>Judul Surat (opsional)</Label>
-                    <Input value={jenisJudul} onChange={e => setJenisJudul(e.target.value)} placeholder="cth: SURAT KETERANGAN PINDAH" />
-                  </div>
-                  <div>
-                    <Label>Template Isi Surat (HTML/teks)</Label>
+                    <Label>Template Isi Surat</Label>
                     <p className="text-xs text-muted-foreground mb-1">
                       Placeholder: {'{nama}'}, {'{tempat_lahir}'}, {'{tanggal_lahir}'}, {'{jenis_kelamin}'}, {'{kelas}'}, {'{no_induk}'}, {'{nisn}'}, {'{nama_orang_tua}'}, {'{alamat}'}, {'{tahun_ajaran}'}
                     </p>
-                    <Textarea value={jenisIsi} onChange={e => setJenisIsi(e.target.value)} rows={8} placeholder="Tulis template isi surat..." />
+                    <p className="text-xs text-muted-foreground mb-2">Anda bisa copy-paste langsung dari MS Word ke area di bawah ini.</p>
+                    <div
+                      ref={templateRef}
+                      contentEditable
+                      className="min-h-[200px] border border-input rounded-md p-3 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring overflow-auto prose prose-sm max-w-none"
+                      onPaste={(e) => handleTemplatePaste(e, false)}
+                      onBlur={(e) => setJenisIsi(e.currentTarget.innerHTML)}
+                      dangerouslySetInnerHTML={{ __html: jenisIsi }}
+                    />
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={addJenisSurat} size="sm"><Plus className="mr-1 h-4 w-4" />Tambah</Button>
@@ -257,17 +233,18 @@ const Pengaturan = () => {
               {editingJenis && (
                 <div className="space-y-3 border border-primary/30 rounded-lg p-4 bg-primary/5">
                   <h3 className="font-medium text-sm">Edit Template</h3>
-                  <div>
-                    <Label>Label</Label>
-                    <Input value={editLabel} onChange={e => setEditLabel(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Judul Surat</Label>
-                    <Input value={editJudul} onChange={e => setEditJudul(e.target.value)} />
-                  </div>
+                  <div><Label>Label</Label><Input value={editLabel} onChange={e => setEditLabel(e.target.value)} /></div>
+                  <div><Label>Judul Surat</Label><Input value={editJudul} onChange={e => setEditJudul(e.target.value)} /></div>
                   <div>
                     <Label>Template Isi Surat</Label>
-                    <Textarea value={editIsi} onChange={e => setEditIsi(e.target.value)} rows={8} />
+                    <p className="text-xs text-muted-foreground mb-2">Anda bisa copy-paste langsung dari MS Word.</p>
+                    <div
+                      contentEditable
+                      className="min-h-[200px] border border-input rounded-md p-3 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring overflow-auto prose prose-sm max-w-none"
+                      onPaste={(e) => handleTemplatePaste(e, true)}
+                      onBlur={(e) => setEditIsi(e.currentTarget.innerHTML)}
+                      dangerouslySetInnerHTML={{ __html: editIsi }}
+                    />
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={saveEditJenis} size="sm">Simpan</Button>
@@ -283,15 +260,10 @@ const Pengaturan = () => {
                 <div className="space-y-2 mt-4">
                   {data.settings.jenisSurat.map(js => (
                     <div key={js.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                      <div className="flex-1">
-                        <div className="font-medium text-sm">{js.label}</div>
-                        <div className="text-xs text-muted-foreground">Judul: {js.templateJudul}</div>
-                      </div>
+                      <div className="flex-1"><div className="font-medium text-sm">{js.label}</div><div className="text-xs text-muted-foreground">Judul: {js.templateJudul}</div></div>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="sm" onClick={() => startEditJenis(js)}>Edit</Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteJenisSurat(js.id)}>
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => deleteJenisSurat(js.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </div>
                   ))}
@@ -301,19 +273,65 @@ const Pengaturan = () => {
           </Card>
         </TabsContent>
 
+        {/* Header Surat */}
+        <TabsContent value="header">
+          <Card>
+            <CardHeader><CardTitle>Header Surat (KOP)</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <input type="file" accept="image/*" ref={logoInputRef} className="hidden" onChange={handleLogoUpload} />
+              <div className="flex items-center gap-4">
+                {h.logoUrl ? (
+                  <img src={h.logoUrl} alt="Logo" className="w-16 h-16 object-contain border rounded" />
+                ) : (
+                  <div className="w-16 h-16 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                    <ImagePlus className="h-6 w-6" />
+                  </div>
+                )}
+                <div className="flex flex-col gap-1">
+                  <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>
+                    <Upload className="mr-1 h-4 w-4" />{h.logoUrl ? 'Ganti Logo' : 'Upload Logo'}
+                  </Button>
+                  {h.logoUrl && <Button variant="ghost" size="sm" onClick={() => updateHeader('logoUrl', '')}>Hapus Logo</Button>}
+                </div>
+              </div>
+              <div><Label>Baris 1</Label><Input value={h.line1} onChange={e => updateHeader('line1', e.target.value)} /></div>
+              <div><Label>Baris 2</Label><Input value={h.line2} onChange={e => updateHeader('line2', e.target.value)} /></div>
+              <div><Label>Nama Sekolah</Label><Input value={h.school} onChange={e => updateHeader('school', e.target.value)} /></div>
+              <div><Label>Alamat</Label><Input value={h.address} onChange={e => updateHeader('address', e.target.value)} /></div>
+              <div><Label>Kontak</Label><Input value={h.contact} onChange={e => updateHeader('contact', e.target.value)} /></div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Tema */}
         <TabsContent value="tema">
           <Card>
             <CardHeader><CardTitle>Tema Tampilan</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="space-y-6">
+              {/* Color theme grid */}
+              <div>
+                <Label className="mb-2 block">Warna Tema</Label>
+                <div className="grid grid-cols-5 gap-3">
+                  {COLOR_THEMES.map(ct => (
+                    <button
+                      key={ct.value}
+                      onClick={() => setColorTheme(ct.value)}
+                      className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all ${data.settings.colorTheme === ct.value ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/40'}`}
+                    >
+                      <div className="w-8 h-8 rounded-full" style={{ backgroundColor: ct.color }} />
+                      <span className="text-xs font-medium">{ct.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Dark/light switch */}
               <div className="flex items-center justify-between p-4 rounded-lg border border-border">
                 <div className="flex items-center gap-3">
                   {isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-amber-500" />}
                   <div>
                     <div className="font-medium text-sm">{isDark ? 'Mode Gelap' : 'Mode Terang'}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {isDark ? 'Tampilan gelap untuk kenyamanan mata' : 'Tampilan terang standar'}
-                    </div>
+                    <div className="text-xs text-muted-foreground">{isDark ? 'Tampilan gelap untuk kenyamanan mata' : 'Tampilan terang standar'}</div>
                   </div>
                 </div>
                 <Switch checked={isDark} onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')} />

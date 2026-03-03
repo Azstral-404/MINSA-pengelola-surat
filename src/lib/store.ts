@@ -7,7 +7,7 @@ export interface KepalaMadrasah {
 
 export interface TahunAjaran {
   id: string;
-  label: string; // e.g. "2025/2026"
+  label: string;
 }
 
 export interface JenisSurat {
@@ -41,13 +41,26 @@ export interface Surat {
 }
 
 export type ThemeName = 'light' | 'dark';
+export type ColorTheme = 'default' | 'emerald' | 'ocean' | 'sunset' | 'royal';
+
+export interface SuratHeader {
+  line1: string;
+  line2: string;
+  school: string;
+  address: string;
+  contact: string;
+  logoUrl: string; // base64 data URL
+}
 
 export interface AppSettings {
   kepalaMadrasah: KepalaMadrasah[];
   tahunAjaran: TahunAjaran[];
   jenisSurat: JenisSurat[];
   theme: ThemeName;
-  activeTahunAjaran: string; // label of active TA
+  colorTheme: ColorTheme;
+  activeTahunAjaran: string;
+  dashboardTitle: string;
+  suratHeader: SuratHeader;
 }
 
 export interface AppData {
@@ -55,13 +68,25 @@ export interface AppData {
   surat: Surat[];
 }
 
+const DEFAULT_HEADER: SuratHeader = {
+  line1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+  line2: 'KANTOR KEMENTERIAN AGAMA KOTA LANGSA',
+  school: 'MADRASAH IBTIDAIYAH NEGERI 1 LANGSA',
+  address: 'Jl. T.M Bahrum No.2 Kel. Jawa Kec. Langsa Kota, Kota Langsa, 24412',
+  contact: 'Telp: (0641) 426487 Email: minaborong@gmail.com',
+  logoUrl: '',
+};
+
 const DEFAULT_DATA: AppData = {
   settings: {
     kepalaMadrasah: [],
     tahunAjaran: [],
     jenisSurat: [],
     theme: 'light',
+    colorTheme: 'default',
     activeTahunAjaran: '',
+    dashboardTitle: 'Sistem Surat',
+    suratHeader: DEFAULT_HEADER,
   },
   surat: [],
 };
@@ -76,7 +101,11 @@ export function loadData(): AppData {
       return {
         ...DEFAULT_DATA,
         ...parsed,
-        settings: { ...DEFAULT_DATA.settings, ...parsed.settings },
+        settings: {
+          ...DEFAULT_DATA.settings,
+          ...parsed.settings,
+          suratHeader: { ...DEFAULT_HEADER, ...(parsed.settings?.suratHeader || {}) },
+        },
         surat: (parsed.surat || []).map((s: any) => ({ ...s, arah: s.arah || 'keluar' })),
       };
     }
@@ -102,6 +131,23 @@ export function slugify(text: string): string {
 export const BULAN_NAMES = [
   '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
   'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+];
+
+export const KELAS_OPTIONS = [
+  { value: 'I', label: 'I (Satu)' },
+  { value: 'II', label: 'II (Dua)' },
+  { value: 'III', label: 'III (Tiga)' },
+  { value: 'IV', label: 'IV (Empat)' },
+  { value: 'V', label: 'V (Lima)' },
+  { value: 'VI', label: 'VI (Enam)' },
+];
+
+export const COLOR_THEMES: { value: ColorTheme; label: string; color: string }[] = [
+  { value: 'default', label: 'Default', color: '#1e293b' },
+  { value: 'emerald', label: 'Emerald', color: '#059669' },
+  { value: 'ocean', label: 'Ocean', color: '#0284c7' },
+  { value: 'sunset', label: 'Sunset', color: '#ea580c' },
+  { value: 'royal', label: 'Royal', color: '#7c3aed' },
 ];
 
 export function formatNomorSurat(nomorSurat: string, bulan: number, tahun: number): string {

@@ -3,16 +3,8 @@ import { NavLink } from '@/components/NavLink';
 import { useApp } from '@/contexts/AppContext';
 import minsaLogo from '@/assets/minsa-logo.png';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarFooter,
-  useSidebar,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarFooter, useSidebar,
 } from '@/components/ui/sidebar';
 
 export function AppSidebar() {
@@ -21,21 +13,18 @@ export function AppSidebar() {
   const { data } = useApp();
 
   const suratItems = data.settings.jenisSurat.map(js => ({
-    title: js.label,
-    url: `/surat/${js.slug}`,
-    icon: FileText,
+    title: js.label, url: `/surat/${js.slug}`, icon: FileText,
   }));
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar/50 backdrop-blur-sm">
       <SidebarContent>
-        {/* Logo & Title */}
         <div className="flex flex-col items-center gap-1 px-3 py-4">
-          <img src={minsaLogo} alt="MINSA" className={`rounded-full ${collapsed ? 'w-8 h-8' : 'w-14 h-14'} object-cover transition-all`} />
+          <img src={minsaLogo} alt="MINSA" className={`rounded-full ${collapsed ? 'w-10 h-10' : 'w-20 h-20'} object-cover transition-all`} />
           {!collapsed && (
             <>
-              <span className="font-bold text-sm text-sidebar-foreground tracking-wide">MINSA</span>
-              <span className="text-[10px] text-muted-foreground">Manajemen Surat</span>
+              <span className="font-bold text-base text-sidebar-foreground tracking-wide">MINSA</span>
+              <span className="text-xs text-muted-foreground">Manajemen Surat</span>
             </>
           )}
         </div>

@@ -9,6 +9,7 @@ interface A4PreviewProps {
 export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
   const { data } = useApp();
   const kepala = data.settings.kepalaMadrasah.find(k => k.id === surat.kepalaMadrasahId);
+  const h = data.settings.suratHeader;
 
   const parseTemplate = (template: string) => {
     return template
@@ -32,29 +33,21 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         id="a4-print-area"
         className="bg-white text-black shadow-lg mx-auto"
         style={{
-          width: '210mm',
-          minHeight: '297mm',
-          padding: '20mm',
-          fontFamily: "'Times New Roman', serif",
-          fontSize: '12pt',
-          lineHeight: '1.6',
-          boxSizing: 'border-box',
+          width: '210mm', minHeight: '297mm', padding: '20mm',
+          fontFamily: "'Times New Roman', serif", fontSize: '12pt',
+          lineHeight: '1.6', boxSizing: 'border-box',
         }}
       >
         {/* Header */}
-        <div style={{ textAlign: 'center', borderBottom: '3px solid black', paddingBottom: '10px', marginBottom: '20px' }}>
-          <div style={{ fontSize: '11pt' }}>KEMENTERIAN AGAMA REPUBLIK INDONESIA</div>
-          <div style={{ fontSize: '11pt' }}>KANTOR KEMENTERIAN AGAMA KOTA LANGSA</div>
-          <div style={{ fontSize: '16pt', fontWeight: 'bold', letterSpacing: '2px' }}>
-            MADRASAH IBTIDAIYAH NEGERI 1 LANGSA
-          </div>
-          <div style={{ fontSize: '9pt' }}>NSM: 111111730001 · NPSN: 10105537</div>
-          <div style={{ fontSize: '9pt' }}>
-            Jl. T.M Bahrum No.2 Kel. Jawa Kec. Langsa Kota, Kota Langsa, 24412
-          </div>
-          <div style={{ fontSize: '9pt' }}>
-            Telp: (0641) 426487 Email: minaborong@gmail.com
-          </div>
+        <div style={{ textAlign: 'center', borderBottom: '3px solid black', paddingBottom: '10px', marginBottom: '20px', position: 'relative' }}>
+          {h.logoUrl && (
+            <img src={h.logoUrl} alt="Logo" style={{ position: 'absolute', left: 0, top: 0, width: '70px', height: '70px', objectFit: 'contain' }} />
+          )}
+          <div style={{ fontSize: '11pt' }}>{h.line1}</div>
+          <div style={{ fontSize: '11pt' }}>{h.line2}</div>
+          <div style={{ fontSize: '16pt', fontWeight: 'bold', letterSpacing: '2px' }}>{h.school}</div>
+          <div style={{ fontSize: '9pt' }}>{h.address}</div>
+          <div style={{ fontSize: '9pt' }}>{h.contact}</div>
         </div>
 
         {/* Judul */}
