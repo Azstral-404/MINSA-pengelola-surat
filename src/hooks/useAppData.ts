@@ -8,17 +8,18 @@ export function useAppData() {
     saveData(data);
   }, [data]);
 
-  // Apply theme
+  // Apply theme as class on html
   useEffect(() => {
     const root = document.documentElement;
-    root.setAttribute('data-theme', data.settings.theme);
+    if (data.settings.theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
   }, [data.settings.theme]);
 
   const updateData = useCallback((updater: (prev: AppData) => AppData) => {
-    setData(prev => {
-      const next = updater(prev);
-      return next;
-    });
+    setData(prev => updater(prev));
   }, []);
 
   const setTheme = useCallback((theme: ThemeName) => {

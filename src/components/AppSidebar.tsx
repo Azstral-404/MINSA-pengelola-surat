@@ -1,7 +1,7 @@
 import { LayoutDashboard, Settings, FileText } from 'lucide-react';
 import { NavLink } from '@/components/NavLink';
-import { useLocation } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
+import minsaLogo from '@/assets/minsa-logo.png';
 import {
   Sidebar,
   SidebarContent,
@@ -11,19 +11,14 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  const location = useLocation();
   const { data } = useApp();
-
-  const mainItems = [
-    { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-    { title: 'Pengaturan', url: '/pengaturan', icon: Settings },
-  ];
 
   const suratItems = data.settings.jenisSurat.map(js => ({
     title: js.label,
@@ -32,24 +27,33 @@ export function AppSidebar() {
   }));
 
   return (
-    <Sidebar collapsible="icon" className="bg-sidebar/50 backdrop-blur-sm border-r border-sidebar-border">
+    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar/50 backdrop-blur-sm">
       <SidebarContent>
+        {/* Logo & Title */}
+        <div className="flex flex-col items-center gap-1 px-3 py-4">
+          <img src={minsaLogo} alt="MINSA" className={`rounded-full ${collapsed ? 'w-8 h-8' : 'w-14 h-14'} object-cover transition-all`} />
+          {!collapsed && (
+            <>
+              <span className="font-bold text-sm text-sidebar-foreground tracking-wide">MINSA</span>
+              <span className="text-[10px] text-muted-foreground">Manajemen Surat</span>
+            </>
+          )}
+        </div>
+
         <SidebarGroup>
           <SidebarGroupLabel className="text-xs font-bold tracking-wider uppercase">
-            {!collapsed && 'MINSA'}
+            {!collapsed && 'Menu'}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {mainItems.map(item => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <NavLink to="/" end className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    {!collapsed && <span>Dashboard</span>}
+                  </NavLink>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
@@ -64,11 +68,7 @@ export function AppSidebar() {
                 {suratItems.map(item => (
                   <SidebarMenuItem key={item.url}>
                     <SidebarMenuButton asChild>
-                      <NavLink
-                        to={item.url}
-                        className="hover:bg-sidebar-accent/50"
-                        activeClassName="bg-sidebar-accent text-sidebar-primary font-medium"
-                      >
+                      <NavLink to={item.url} className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
                         <item.icon className="mr-2 h-4 w-4" />
                         {!collapsed && <span>{item.title}</span>}
                       </NavLink>
@@ -80,6 +80,19 @@ export function AppSidebar() {
           </SidebarGroup>
         )}
       </SidebarContent>
+
+      <SidebarFooter>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <NavLink to="/pengaturan" className="hover:bg-sidebar-accent/50" activeClassName="bg-sidebar-accent text-sidebar-primary font-medium">
+                <Settings className="mr-2 h-4 w-4" />
+                {!collapsed && <span>Pengaturan</span>}
+              </NavLink>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   );
 }
