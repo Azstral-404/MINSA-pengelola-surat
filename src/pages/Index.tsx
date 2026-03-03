@@ -1,16 +1,26 @@
+import { useState } from 'react';
 import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { BULAN_NAMES } from '@/lib/store';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowUpRight, ArrowDownLeft, Plus } from 'lucide-react';
+import { ArrowUpRight, ArrowDownLeft, Plus, Pencil, Check } from 'lucide-react';
 
 const Index = () => {
-  const { data } = useApp();
+  const { data, updateData } = useApp();
   const navigate = useNavigate();
   const now = new Date();
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
+
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState(data.settings.dashboardTitle);
+
+  const saveTitle = () => {
+    updateData(d => ({ ...d, settings: { ...d.settings, dashboardTitle: titleDraft.trim() || 'Sistem Surat' } }));
+    setEditingTitle(false);
+  };
 
   const masukTotal = data.surat.filter(s => s.arah === 'masuk').length;
   const keluarTotal = data.surat.filter(s => s.arah === 'keluar').length;
@@ -23,15 +33,36 @@ const Index = () => {
 
   return (
     <div className="space-y-6">
-      {/* Title */}
+      {/* Editable Title */}
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Sistem Surat</h1>
+        <div className="flex items-center gap-2">
+          {editingTitle ? (
+            <>
+              <Input
+                value={titleDraft}
+                onChange={e => setTitleDraft(e.target.value)}
+                className="text-2xl font-bold h-10 w-auto max-w-xs"
+                autoFocus
+                onKeyDown={e => e.key === 'Enter' && saveTitle()}
+              />
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={saveTitle}>
+                <Check className="h-4 w-4" />
+              </Button>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold text-foreground">{data.settings.dashboardTitle}</h1>
+              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setTitleDraft(data.settings.dashboardTitle); setEditingTitle(true); }}>
+                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+              </Button>
+            </>
+          )}
+        </div>
         <p className="text-sm text-muted-foreground">MIN 1 Langsa — NSM: 111111730001 · NPSN: 10105537{activeTA ? ` — TA ${activeTA}` : ''}</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Big card: Total */}
         <Card className="lg:row-span-2 overflow-hidden">
           <CardContent className="p-0 h-full">
             <div className="grid grid-cols-2 h-full">
@@ -51,7 +82,6 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Medium card: Bulan ini */}
         <Card className="overflow-hidden">
           <CardContent className="p-0">
             <div className="grid grid-cols-2">
@@ -69,22 +99,17 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Action buttons */}
         <div className="grid grid-cols-2 gap-3">
           <Button
             className="h-full min-h-[64px] bg-emerald-600 hover:bg-emerald-700 text-white flex flex-col gap-1"
-            onClick={() => {
-              if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=masuk`);
-            }}
+            onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=masuk`); }}
           >
             <Plus className="h-5 w-5" />
             <span className="text-xs">Surat Masuk</span>
           </Button>
           <Button
             className="h-full min-h-[64px] bg-rose-600 hover:bg-rose-700 text-white flex flex-col gap-1"
-            onClick={() => {
-              if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=keluar`);
-            }}
+            onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=keluar`); }}
           >
             <Plus className="h-5 w-5" />
             <span className="text-xs">Surat Keluar</span>

@@ -27,6 +27,7 @@ const App = () => (
               <Route path="/pengaturan" element={<Pengaturan />} />
               <Route path="/surat/:jenisSlug" element={<DaftarSurat />} />
               <Route path="/surat/:jenisSlug/tambah" element={<TambahSurat />} />
+              <Route path="/surat/:jenisSlug/:id/edit" element={<TambahSurat />} />
               <Route path="/surat/:jenisSlug/:id/preview" element={<PreviewSurat />} />
             </Route>
             <Route path="*" element={<NotFound />} />
