@@ -1,105 +1,131 @@
 import { useApp } from '@/contexts/AppContext';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Users, Calendar } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { BULAN_NAMES } from '@/lib/store';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowUpRight, ArrowDownLeft, Plus } from 'lucide-react';
 
 const Index = () => {
   const { data } = useApp();
+  const navigate = useNavigate();
+  const now = new Date();
+  const currentMonth = now.getMonth() + 1;
+  const currentYear = now.getFullYear();
+
+  const masukTotal = data.surat.filter(s => s.arah === 'masuk').length;
+  const keluarTotal = data.surat.filter(s => s.arah === 'keluar').length;
+  const masukBulan = data.surat.filter(s => s.arah === 'masuk' && s.bulan === currentMonth && s.tahun === currentYear).length;
+  const keluarBulan = data.surat.filter(s => s.arah === 'keluar' && s.bulan === currentMonth && s.tahun === currentYear).length;
+
+  const recentSurat = [...data.surat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
   const { jenisSurat } = data.settings;
-  const recentSurat = [...data.surat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
+  const activeTA = data.settings.activeTahunAjaran;
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Surat</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.surat.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Jenis Surat</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{jenisSurat.length}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Tahun Ajaran</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{data.settings.tahunAjaran.length}</div>
-          </CardContent>
-        </Card>
+      {/* Title */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Sistem Surat</h1>
+        <p className="text-sm text-muted-foreground">MIN 1 Langsa — NSM: 111111730001 · NPSN: 10105537{activeTA ? ` — TA ${activeTA}` : ''}</p>
       </div>
 
-      {/* Per Jenis Surat */}
-      {jenisSurat.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {jenisSurat.map(js => {
-            const count = data.surat.filter(s => s.jenisSuratId === js.id).length;
-            return (
-              <Link to={`/surat/${js.slug}`} key={js.id}>
-                <Card className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">{js.label}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-xl font-bold">{count} surat</div>
-                  </CardContent>
-                </Card>
-              </Link>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Recent */}
-      {recentSurat.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Surat Terbaru</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {recentSurat.map(s => {
-                const js = jenisSurat.find(j => j.id === s.jenisSuratId);
-                return (
-                  <div key={s.id} className="flex justify-between items-center text-sm border-b border-border pb-2">
-                    <div>
-                      <span className="font-medium">{s.nama}</span>
-                      <span className="text-muted-foreground ml-2">— {js?.label}</span>
-                    </div>
-                    <span className="text-muted-foreground text-xs">
-                      {BULAN_NAMES[s.bulan]} {s.tahun}
-                    </span>
-                  </div>
-                );
-              })}
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Big card: Total */}
+        <Card className="lg:row-span-2 overflow-hidden">
+          <CardContent className="p-0 h-full">
+            <div className="grid grid-cols-2 h-full">
+              <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 p-5 flex flex-col justify-center items-center border-r border-border">
+                <ArrowDownLeft className="h-5 w-5 text-emerald-600 dark:text-emerald-400 mb-1" />
+                <span className="text-xs text-muted-foreground">{activeTA || `${currentYear}`}</span>
+                <span className="text-3xl font-bold text-foreground">{masukTotal}</span>
+                <span className="text-xs text-muted-foreground font-medium">TOTAL MASUK</span>
+              </div>
+              <div className="bg-gradient-to-br from-rose-500/20 to-rose-600/10 p-5 flex flex-col justify-center items-center">
+                <ArrowUpRight className="h-5 w-5 text-rose-600 dark:text-rose-400 mb-1" />
+                <span className="text-xs text-muted-foreground">{activeTA || `${currentYear}`}</span>
+                <span className="text-3xl font-bold text-foreground">{keluarTotal}</span>
+                <span className="text-xs text-muted-foreground font-medium">TOTAL KELUAR</span>
+              </div>
             </div>
           </CardContent>
         </Card>
-      )}
 
-      {jenisSurat.length === 0 && (
-        <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            Belum ada jenis surat. Silakan tambahkan di{' '}
-            <Link to="/pengaturan" className="text-primary underline">Pengaturan</Link>.
+        {/* Medium card: Bulan ini */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="grid grid-cols-2">
+              <div className="bg-gradient-to-br from-emerald-500/15 to-transparent p-4 flex flex-col items-center border-r border-border">
+                <span className="text-xs text-muted-foreground uppercase">{BULAN_NAMES[currentMonth]}</span>
+                <span className="text-2xl font-bold text-foreground">{masukBulan}</span>
+                <span className="text-[10px] text-muted-foreground">MASUK</span>
+              </div>
+              <div className="bg-gradient-to-br from-rose-500/15 to-transparent p-4 flex flex-col items-center">
+                <span className="text-xs text-muted-foreground uppercase">{BULAN_NAMES[currentMonth]}</span>
+                <span className="text-2xl font-bold text-foreground">{keluarBulan}</span>
+                <span className="text-[10px] text-muted-foreground">KELUAR</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      )}
+
+        {/* Action buttons */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            className="h-full min-h-[64px] bg-emerald-600 hover:bg-emerald-700 text-white flex flex-col gap-1"
+            onClick={() => {
+              if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=masuk`);
+            }}
+          >
+            <Plus className="h-5 w-5" />
+            <span className="text-xs">Surat Masuk</span>
+          </Button>
+          <Button
+            className="h-full min-h-[64px] bg-rose-600 hover:bg-rose-700 text-white flex flex-col gap-1"
+            onClick={() => {
+              if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=keluar`);
+            }}
+          >
+            <Plus className="h-5 w-5" />
+            <span className="text-xs">Surat Keluar</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Riwayat Terakhir */}
+      <div>
+        <h2 className="text-base font-semibold text-foreground mb-3">Riwayat Terakhir</h2>
+        {recentSurat.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-muted-foreground text-sm">
+              Belum ada surat. Silakan tambahkan jenis surat di{' '}
+              <Link to="/pengaturan" className="text-primary underline">Pengaturan</Link>.
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {recentSurat.map(s => {
+              const js = jenisSurat.find(j => j.id === s.jenisSuratId);
+              const isMasuk = s.arah === 'masuk';
+              return (
+                <Link to={js ? `/surat/${js.slug}/${s.id}/preview` : '#'} key={s.id}>
+                  <Card className={`hover:shadow-md transition-shadow cursor-pointer border-l-4 ${isMasuk ? 'border-l-emerald-500' : 'border-l-rose-500'}`}>
+                    <CardContent className="py-3 px-4 flex items-center justify-between">
+                      <div>
+                        <div className="font-medium text-sm text-foreground">{s.nama}</div>
+                        <div className="text-xs text-muted-foreground">{js?.label} · {BULAN_NAMES[s.bulan]} {s.tahun}</div>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isMasuk ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}>
+                        {isMasuk ? 'MASUK' : 'KELUAR'}
+                      </span>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

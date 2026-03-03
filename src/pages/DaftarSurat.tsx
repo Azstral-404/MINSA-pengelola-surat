@@ -1,118 +1,115 @@
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { BULAN_NAMES } from '@/lib/store';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Eye, Trash2 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Plus, MoreVertical, Eye, Pencil, Trash2, Printer } from 'lucide-react';
 import { toast } from 'sonner';
 
 const DaftarSurat = () => {
   const { jenisSlug } = useParams<{ jenisSlug: string }>();
   const { data, updateData } = useApp();
   const navigate = useNavigate();
+  const [filter, setFilter] = useState<'semua' | 'masuk' | 'keluar'>('semua');
 
   const jenisSurat = data.settings.jenisSurat.find(j => j.slug === jenisSlug);
   if (!jenisSurat) {
     return <div className="text-center py-10 text-muted-foreground">Jenis surat tidak ditemukan.</div>;
   }
 
-  const suratList = data.surat.filter(s => s.jenisSuratId === jenisSurat.id);
-
-  // Group by tahun then bulan
-  const grouped: Record<number, Record<number, typeof suratList>> = {};
-  suratList.forEach(s => {
-    if (!grouped[s.tahun]) grouped[s.tahun] = {};
-    if (!grouped[s.tahun][s.bulan]) grouped[s.tahun][s.bulan] = [];
-    grouped[s.tahun][s.bulan].push(s);
-  });
+  let suratList = data.surat.filter(s => s.jenisSuratId === jenisSurat.id);
+  if (filter !== 'semua') suratList = suratList.filter(s => s.arah === filter);
+  suratList.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const deleteSurat = (id: string) => {
     updateData(d => ({ ...d, surat: d.surat.filter(s => s.id !== id) }));
     toast.success('Surat dihapus');
   };
 
-  const sortedYears = Object.keys(grouped).map(Number).sort((a, b) => b - a);
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-foreground">{jenisSurat.label}</h1>
-        <Link to={`/surat/${jenisSlug}/tambah`}>
-          <Button size="sm"><Plus className="mr-1 h-4 w-4" />Tambah Surat</Button>
-        </Link>
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <h1 className="text-xl font-bold text-foreground">{jenisSurat.label}</h1>
+        <div className="flex items-center gap-2">
+          <Select value={filter} onValueChange={(v) => setFilter(v as any)}>
+            <SelectTrigger className="h-8 text-xs w-[100px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="semua">Semua</SelectItem>
+              <SelectItem value="masuk">Masuk</SelectItem>
+              <SelectItem value="keluar">Keluar</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="h-8">
+                <Plus className="mr-1 h-4 w-4" />Buat Surat
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => navigate(`/surat/${jenisSlug}/tambah?arah=masuk`)}>
+                Surat Masuk
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate(`/surat/${jenisSlug}/tambah?arah=keluar`)}>
+                Surat Keluar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {suratList.length === 0 ? (
         <Card>
-          <CardContent className="py-8 text-center text-muted-foreground">
-            Belum ada surat. Klik tombol "Tambah Surat" untuk memulai.
+          <CardContent className="py-8 text-center text-muted-foreground text-sm">
+            Belum ada surat. Klik "+ Buat Surat" untuk memulai.
           </CardContent>
         </Card>
       ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-20">Tahun</TableHead>
-                  <TableHead className="w-28">Bulan</TableHead>
-                  <TableHead>Nama</TableHead>
-                  <TableHead>No. Surat</TableHead>
-                  <TableHead>Kelas</TableHead>
-                  <TableHead className="text-right">Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedYears.map(tahun => {
-                  const bulanKeys = Object.keys(grouped[tahun]).map(Number).sort((a, b) => a - b);
-                  const totalRowsForYear = bulanKeys.reduce((sum, b) => sum + grouped[tahun][b].length, 0);
-                  let yearRendered = false;
-
-                  return bulanKeys.map(bulan => {
-                    const items = grouped[tahun][bulan];
-                    let bulanRendered = false;
-
-                    return items.map((s, idx) => {
-                      const showYear = !yearRendered;
-                      const showBulan = !bulanRendered;
-                      if (showYear) yearRendered = true;
-                      if (showBulan) bulanRendered = true;
-
-                      return (
-                        <TableRow key={s.id}>
-                          {showYear && (
-                            <TableCell rowSpan={totalRowsForYear} className="font-bold text-center align-top bg-muted/50">
-                              {tahun}
-                            </TableCell>
-                          )}
-                          {showBulan && (
-                            <TableCell rowSpan={items.length} className="font-medium align-top bg-muted/30">
-                              {BULAN_NAMES[bulan]}
-                            </TableCell>
-                          )}
-                          <TableCell>{s.nama}</TableCell>
-                          <TableCell className="text-xs">{s.nomorSurat || '-'}</TableCell>
-                          <TableCell>{s.kelas}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex gap-1 justify-end">
-                              <Button variant="ghost" size="icon" onClick={() => navigate(`/surat/${jenisSlug}/${s.id}/preview`)}>
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => deleteSurat(s.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    });
-                  });
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+        <div className="space-y-2">
+          {suratList.map(s => {
+            const isMasuk = s.arah === 'masuk';
+            return (
+              <Card key={s.id} className={`border-l-4 ${isMasuk ? 'border-l-emerald-500' : 'border-l-rose-500'}`}>
+                <CardContent className="py-3 px-4 flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-sm text-foreground">{s.nama}</div>
+                    <div className="text-xs text-muted-foreground">
+                      NISN: {s.nisn || '-'} · No: {s.nomorSurat || '-'} · {BULAN_NAMES[s.bulan]} {s.tahun}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isMasuk ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}>
+                      {isMasuk ? 'MASUK' : 'KELUAR'}
+                    </span>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-7 w-7">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => navigate(`/surat/${jenisSlug}/${s.id}/preview`)}>
+                          <Eye className="mr-2 h-4 w-4" /> Lihat
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => navigate(`/surat/${jenisSlug}/${s.id}/preview`)}>
+                          <Printer className="mr-2 h-4 w-4" /> Print
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => deleteSurat(s.id)}>
+                          <Trash2 className="mr-2 h-4 w-4" /> Hapus
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       )}
     </div>
   );

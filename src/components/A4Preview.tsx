@@ -1,8 +1,5 @@
-import React, { useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { Surat, JenisSurat, formatNomorSurat, KepalaMadrasah } from '@/lib/store';
-import { Button } from '@/components/ui/button';
-import { Printer } from 'lucide-react';
+import { Surat, JenisSurat, formatNomorSurat } from '@/lib/store';
 
 interface A4PreviewProps {
   surat: Surat;
@@ -11,28 +8,8 @@ interface A4PreviewProps {
 
 export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
   const { data } = useApp();
-  const ref = useRef<HTMLDivElement>(null);
   const kepala = data.settings.kepalaMadrasah.find(k => k.id === surat.kepalaMadrasahId);
 
-  const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
-    if (!printWindow || !ref.current) return;
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html><head><title>Cetak Surat</title>
-      <style>
-        @page { size: A4; margin: 20mm; }
-        body { margin: 0; font-family: 'Times New Roman', serif; font-size: 12pt; }
-        .a4-page { width: 210mm; min-height: 297mm; padding: 20mm; box-sizing: border-box; }
-      </style>
-      </head><body>${ref.current.innerHTML}</body></html>
-    `);
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 300);
-  };
-
-  // Parse template: replace placeholders
   const parseTemplate = (template: string) => {
     return template
       .replace(/\{nama\}/gi, surat.nama)
@@ -50,13 +27,9 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
   const parsedIsi = parseTemplate(jenisSurat.templateIsi);
 
   return (
-    <div className="flex flex-col items-center gap-4">
-      <Button onClick={handlePrint} className="print:hidden">
-        <Printer className="mr-2 h-4 w-4" /> Cetak Surat
-      </Button>
-
+    <div className="flex justify-center">
       <div
-        ref={ref}
+        id="a4-print-area"
         className="bg-white text-black shadow-lg mx-auto"
         style={{
           width: '210mm',
@@ -84,22 +57,22 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           </div>
         </div>
 
-        {/* Judul Surat */}
+        {/* Judul */}
         <div style={{ textAlign: 'center', marginBottom: '5px' }}>
           <div style={{ fontWeight: 'bold', textDecoration: 'underline', fontSize: '14pt' }}>
             {jenisSurat.templateJudul || jenisSurat.label.toUpperCase()}
           </div>
         </div>
 
-        {/* Nomor Surat */}
+        {/* Nomor */}
         <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '12pt' }}>
           {formatNomorSurat(surat.nomorSurat, surat.bulan, surat.tahun)}
         </div>
 
-        {/* Isi Surat */}
+        {/* Isi */}
         <div dangerouslySetInnerHTML={{ __html: parsedIsi }} />
 
-        {/* Tanda Tangan */}
+        {/* TTD */}
         {kepala && (
           <div style={{ marginTop: '40px', textAlign: 'right', paddingRight: '20px' }}>
             <div>Langsa, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>

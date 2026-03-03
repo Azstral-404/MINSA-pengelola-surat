@@ -13,9 +13,9 @@ export interface TahunAjaran {
 export interface JenisSurat {
   id: string;
   slug: string;
-  label: string; // e.g. "Surat Ket Aktif"
+  label: string;
   templateJudul: string;
-  templateIsi: string; // HTML content
+  templateIsi: string;
   createdAt: string;
 }
 
@@ -33,19 +33,21 @@ export interface Surat {
   namaOrangTua: string;
   alamat: string;
   tahunAjaran: string;
-  bulan: number; // 1-12
+  bulan: number;
   tahun: number;
   kepalaMadrasahId: string;
+  arah: 'masuk' | 'keluar';
   createdAt: string;
 }
 
-export type ThemeName = 'default' | 'emerald' | 'ocean' | 'sunset' | 'royal';
+export type ThemeName = 'light' | 'dark';
 
 export interface AppSettings {
   kepalaMadrasah: KepalaMadrasah[];
   tahunAjaran: TahunAjaran[];
   jenisSurat: JenisSurat[];
   theme: ThemeName;
+  activeTahunAjaran: string; // label of active TA
 }
 
 export interface AppData {
@@ -58,7 +60,8 @@ const DEFAULT_DATA: AppData = {
     kepalaMadrasah: [],
     tahunAjaran: [],
     jenisSurat: [],
-    theme: 'default',
+    theme: 'light',
+    activeTahunAjaran: '',
   },
   surat: [],
 };
@@ -70,7 +73,12 @@ export function loadData(): AppData {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      return { ...DEFAULT_DATA, ...parsed, settings: { ...DEFAULT_DATA.settings, ...parsed.settings } };
+      return {
+        ...DEFAULT_DATA,
+        ...parsed,
+        settings: { ...DEFAULT_DATA.settings, ...parsed.settings },
+        surat: (parsed.surat || []).map((s: any) => ({ ...s, arah: s.arah || 'keluar' })),
+      };
     }
   } catch {}
   return structuredClone(DEFAULT_DATA);

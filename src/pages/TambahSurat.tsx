@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { generateId } from '@/lib/store';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 
 const TambahSurat = () => {
   const { jenisSlug } = useParams<{ jenisSlug: string }>();
+  const [searchParams] = useSearchParams();
+  const arahParam = searchParams.get('arah') as 'masuk' | 'keluar' | null;
   const { data, updateData } = useApp();
   const navigate = useNavigate();
 
@@ -27,8 +29,9 @@ const TambahSurat = () => {
     nisn: '',
     namaOrangTua: '',
     alamat: '',
-    tahunAjaran: '',
+    tahunAjaran: data.settings.activeTahunAjaran || '',
     kepalaMadrasahId: '',
+    arah: arahParam || 'keluar' as 'masuk' | 'keluar',
   });
 
   if (!jenisSurat) {
@@ -59,6 +62,7 @@ const TambahSurat = () => {
       bulan: now.getMonth() + 1,
       tahun: now.getFullYear(),
       kepalaMadrasahId: form.kepalaMadrasahId,
+      arah: form.arah,
       createdAt: now.toISOString(),
     };
 
@@ -67,13 +71,32 @@ const TambahSurat = () => {
     navigate(`/surat/${jenisSlug}`);
   };
 
+  const isMasuk = form.arah === 'masuk';
+
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-foreground mb-6">Tambah {jenisSurat.label}</h1>
+      <h1 className="text-xl font-bold text-foreground mb-4">
+        Tambah {jenisSurat.label}
+        <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-full ${isMasuk ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}>
+          {isMasuk ? 'MASUK' : 'KELUAR'}
+        </span>
+      </h1>
 
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Arah */}
+            <div>
+              <Label>Jenis Surat</Label>
+              <Select value={form.arah} onValueChange={v => setField('arah', v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="masuk">Surat Masuk</SelectItem>
+                  <SelectItem value="keluar">Surat Keluar</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div>
               <Label>Nomor Surat (opsional)</Label>
               <Input value={form.nomorSurat} onChange={e => setField('nomorSurat', e.target.value)} placeholder="Kosongkan jika belum ada" />
