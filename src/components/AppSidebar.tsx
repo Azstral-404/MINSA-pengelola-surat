@@ -55,7 +55,7 @@ export function AppSidebar() {
         </SidebarGroup>
 
         {suratItems.length > 0 && (
-          <SidebarGroup defaultOpen>
+          <SidebarGroup>
             <SidebarGroupLabel className="text-xs font-bold tracking-wider uppercase">
               {!collapsed && 'Surat'}
             </SidebarGroupLabel>
