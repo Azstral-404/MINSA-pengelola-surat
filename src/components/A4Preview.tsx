@@ -1,5 +1,5 @@
 import { useApp } from '@/contexts/AppContext';
-import { Surat, JenisSurat, formatNomorSurat } from '@/lib/store';
+import { Surat, JenisSurat, formatNomorSurat, KELAS_OPTIONS } from '@/lib/store';
 import kemenagLogo from '@/assets/kemenag-logo.png';
 
 interface A4PreviewProps {
