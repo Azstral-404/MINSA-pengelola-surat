@@ -7,16 +7,67 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen } from 'lucide-react';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, UserPlus } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
+
+const BIODATA_ITEMS = [
+  { label: 'Nama', placeholder: '{nama}' },
+  { label: 'Tempat Lahir', placeholder: '{tempat_lahir}' },
+  { label: 'Tanggal Lahir', placeholder: '{tanggal_lahir}' },
+  { label: 'Jenis Kelamin', placeholder: '{jenis_kelamin}' },
+  { label: 'Kelas', placeholder: '{kelas}' },
+  { label: 'No. Induk', placeholder: '{no_induk}' },
+  { label: 'NISN', placeholder: '{nisn}' },
+  { label: 'Nama Orang Tua', placeholder: '{nama_orang_tua}' },
+  { label: 'Alamat', placeholder: '{alamat}' },
+  { label: 'Tahun Ajaran', placeholder: '{tahun_ajaran}' },
+];
+
+const BiodataInsertButton = ({ editorRef }: { editorRef: React.RefObject<HTMLDivElement> }) => {
+  const [open, setOpen] = useState(false);
+
+  const insertPlaceholder = (text: string) => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    document.execCommand('insertText', false, text);
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm">
+          <UserPlus className="mr-1 h-4 w-4" />Biodata
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        <p className="text-xs font-medium text-muted-foreground mb-2">Sisipkan placeholder:</p>
+        <div className="flex flex-wrap gap-1">
+          {BIODATA_ITEMS.map(item => (
+            <button
+              key={item.placeholder}
+              onClick={() => insertPlaceholder(item.placeholder)}
+              className="px-2 py-1 text-xs rounded-md bg-muted hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const Pengaturan = () => {
   const { data, updateData, setTheme, setColorTheme } = useApp();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const templateRef = useRef<HTMLDivElement>(null);
+  const editTemplateRef = useRef<HTMLDivElement>(null);
   const isDark = data.settings.theme === 'dark';
 
   const [nipInput, setNipInput] = useState('');
@@ -245,6 +296,7 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
+                    <BiodataInsertButton editorRef={templateRef} />
                   </div>
                 </div>
               )}
@@ -258,6 +310,7 @@ const Pengaturan = () => {
                     <Label>Template Isi Surat</Label>
                     <p className="text-xs text-muted-foreground mb-2">Anda bisa copy-paste langsung dari MS Word.</p>
                     <div
+                      ref={editTemplateRef}
                       contentEditable
                       className="min-h-[200px] border border-input rounded-md p-3 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring overflow-auto prose prose-sm max-w-none"
                       onPaste={(e) => handleTemplatePaste(e, true)}
@@ -270,6 +323,7 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
+                    <BiodataInsertButton editorRef={editTemplateRef} />
                     <Button variant="ghost" size="sm" onClick={() => setEditingJenis(null)}>Batal</Button>
                   </div>
                 </div>
