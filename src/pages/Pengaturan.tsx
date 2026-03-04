@@ -7,10 +7,60 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen } from 'lucide-react';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, UserPlus } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
+
+const BIODATA_ITEMS = [
+  { label: 'Nama', placeholder: '{nama}' },
+  { label: 'Tempat Lahir', placeholder: '{tempat_lahir}' },
+  { label: 'Tanggal Lahir', placeholder: '{tanggal_lahir}' },
+  { label: 'Jenis Kelamin', placeholder: '{jenis_kelamin}' },
+  { label: 'Kelas', placeholder: '{kelas}' },
+  { label: 'No. Induk', placeholder: '{no_induk}' },
+  { label: 'NISN', placeholder: '{nisn}' },
+  { label: 'Nama Orang Tua', placeholder: '{nama_orang_tua}' },
+  { label: 'Alamat', placeholder: '{alamat}' },
+  { label: 'Tahun Ajaran', placeholder: '{tahun_ajaran}' },
+];
+
+const BiodataInsertButton = ({ editorRef }: { editorRef: React.RefObject<HTMLDivElement> }) => {
+  const [open, setOpen] = useState(false);
+
+  const insertPlaceholder = (text: string) => {
+    const el = editorRef.current;
+    if (!el) return;
+    el.focus();
+    document.execCommand('insertText', false, text);
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" size="sm">
+          <UserPlus className="mr-1 h-4 w-4" />Biodata
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-56 p-2" align="start">
+        <p className="text-xs font-medium text-muted-foreground mb-2">Sisipkan placeholder:</p>
+        <div className="flex flex-wrap gap-1">
+          {BIODATA_ITEMS.map(item => (
+            <button
+              key={item.placeholder}
+              onClick={() => insertPlaceholder(item.placeholder)}
+              className="px-2 py-1 text-xs rounded-md bg-muted hover:bg-accent hover:text-accent-foreground transition-colors"
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
 
 const Pengaturan = () => {
   const { data, updateData, setTheme, setColorTheme } = useApp();
