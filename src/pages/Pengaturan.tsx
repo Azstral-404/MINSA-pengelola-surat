@@ -36,12 +36,53 @@ const BiodataChecklistSection = ({
     }
   };
 
+  const savedSelectionRef = useRef<Range | null>(null);
+
+  // Save selection whenever the editor loses focus
+  React.useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    const saveSelection = () => {
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        const range = sel.getRangeAt(0);
+        if (el.contains(range.commonAncestorContainer)) {
+          savedSelectionRef.current = range.cloneRange();
+        }
+      }
+    };
+    el.addEventListener('keyup', saveSelection);
+    el.addEventListener('mouseup', saveSelection);
+    el.addEventListener('blur', saveSelection);
+    return () => {
+      el.removeEventListener('keyup', saveSelection);
+      el.removeEventListener('mouseup', saveSelection);
+      el.removeEventListener('blur', saveSelection);
+    };
+  }, [editorRef]);
+
   const insertBiodataTable = () => {
     const el = editorRef.current;
     if (!el) return;
     if (selectedBiodata.length === 0) { toast.error('Pilih biodata terlebih dahulu'); return; }
     const html = generateBiodataTableHtml(selectedBiodata, allFields);
+
     el.focus();
+    const sel = window.getSelection();
+
+    // Restore saved cursor position if available
+    if (savedSelectionRef.current && el.contains(savedSelectionRef.current.commonAncestorContainer)) {
+      sel?.removeAllRanges();
+      sel?.addRange(savedSelectionRef.current);
+    } else if (sel) {
+      // Move cursor to end if no saved position
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
     document.execCommand('insertHTML', false, html);
     toast.success('Tabel biodata disisipkan');
   };

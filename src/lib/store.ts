@@ -215,11 +215,10 @@ export function generateBiodataTableHtml(selectedKeys: string[], allFields: Biod
   
   const maxLabelLen = Math.max(...selected.map(f => f.label.length));
   
-  let html = '<table style="border-collapse:collapse;margin:8px 0;">';
+  let html = '';
   for (const field of selected) {
-    const paddedLabel = field.label.padEnd(maxLabelLen, '\u00A0');
-    html += `<tr><td style="padding:2px 8px 2px 0;vertical-align:top;white-space:nowrap;">${paddedLabel}</td><td style="padding:2px 4px;vertical-align:top;">:</td><td style="padding:2px 0 2px 4px;">${field.placeholder}</td></tr>`;
+    const padding = '\u00A0'.repeat(Math.max(0, maxLabelLen - field.label.length));
+    html += `<div>${field.label}${padding}\u00A0: ${field.placeholder}</div>`;
   }
-  html += '</table>';
   return html;
 }
