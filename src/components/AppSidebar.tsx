@@ -20,10 +20,10 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar/50 backdrop-blur-sm">
       <SidebarContent>
         <div className="flex flex-col items-center gap-1 px-3 py-4">
-          <img src={minsaLogo} alt="MINSA" className={`rounded-full ${collapsed ? 'w-12 h-12' : 'w-28 h-28'} object-cover transition-all`} />
+          <img src={minsaLogo} alt="MINSA" className={`rounded-full ${collapsed ? 'w-12 h-12' : 'w-36 h-36'} object-cover transition-all`} />
           {!collapsed && (
             <>
-              <span className="font-bold text-lg text-sidebar-foreground tracking-wide">MINSA</span>
+              <span className="font-bold text-xl text-sidebar-foreground tracking-wide">MINSA</span>
               <span className="text-xs text-muted-foreground">Manajemen Surat</span>
             </>
           )}
