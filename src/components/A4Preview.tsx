@@ -49,7 +49,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           <img
             src={logoSrc}
             alt="Logo"
-            style={{ position: 'absolute', left: '-12.9mm', top: '-1.7mm', width: '25.47mm', height: '25.59mm', objectFit: 'contain', zIndex: 10 }}
+            style={{ position: 'absolute', left: '-12.9mm', top: '0', width: '22mm', height: '22mm', objectFit: 'contain', zIndex: 10 }}
           />
           <div style={{ fontSize: '16pt', fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>
             {h.line1}
