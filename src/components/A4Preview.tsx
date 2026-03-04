@@ -14,7 +14,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
 
   const parseTemplate = (template: string) => {
     return template
-      .replace(/\{nama\}/gi, surat.nama)
+      .replace(/\{nama\}/gi, '<b>' + surat.nama + '</b>')
       .replace(/\{tempat_lahir\}/gi, surat.tempatLahir)
       .replace(/\{tanggal_lahir\}/gi, surat.tanggalLahir)
       .replace(/\{jenis_kelamin\}/gi, surat.jenisKelamin)
@@ -49,7 +49,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           <img
             src={logoSrc}
             alt="Logo"
-            style={{ position: 'absolute', left: '-12.9mm', top: '-1.7mm', width: '25.47mm', height: '25.59mm', objectFit: 'contain', zIndex: 10 }}
+            style={{ position: 'absolute', left: '-12.9mm', top: '0', width: '22mm', height: '22mm', objectFit: 'contain', zIndex: 10 }}
           />
           <div style={{ fontSize: '16pt', fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>
             {h.line1}
@@ -73,8 +73,8 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         </div>
 
         {/* Nomor */}
-        <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '12pt' }}>
-          {formatNomorSurat(surat.nomorSurat, surat.bulan, surat.tahun)}
+        <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '12pt', fontWeight: 'bold' }}>
+          {formatNomorSurat(surat.nomorSurat, surat.bulan, surat.tahun, data.settings.nomorSuratFormat)}
         </div>
 
         {/* Isi */}

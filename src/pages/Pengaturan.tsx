@@ -47,7 +47,7 @@ const Pengaturan = () => {
 
   // Kepala Madrasah
   const addKepala = () => {
-    if (!nipInput.trim() || !namaInput.trim()) { toast.error('NIP dan Nama wajib diisi'); return; }
+    if (!namaInput.trim()) { toast.error('Nama wajib diisi'); return; }
     updateData(d => ({
       ...d, settings: { ...d.settings, kepalaMadrasah: [...d.settings.kepalaMadrasah, { id: generateId(), nip: nipInput.trim(), nama: namaInput.trim() }] },
     }));
@@ -200,6 +200,22 @@ const Pengaturan = () => {
             <CardHeader><CardTitle>Jenis Surat & Template</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <input type="file" accept=".docx" ref={fileInputRef} className="hidden" onChange={handleDocxImport} />
+
+              {/* Format Nomor Surat */}
+              <div className="border border-border rounded-lg p-4 space-y-2">
+                <Label>Format Nomor Surat</Label>
+                <p className="text-xs text-muted-foreground">
+                  Placeholder: {'{nomor}'} = nomor surat, {'{bulan}'} = bulan (01-12), {'{tahun}'} = tahun
+                </p>
+                <Input
+                  value={data.settings.nomorSuratFormat}
+                  onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, nomorSuratFormat: e.target.value } }))}
+                  placeholder="B. {nomor} /Mi.01.21/1/PP.01.1/{bulan}/{tahun}"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Preview: NOMOR : {data.settings.nomorSuratFormat.replace(/\{nomor\}/gi, '001').replace(/\{bulan\}/gi, '03').replace(/\{tahun\}/gi, '2026')}
+                </p>
+              </div>
 
               {!editingJenis && (
                 <div className="space-y-3 border border-border rounded-lg p-4">

@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, MoreVertical, Printer, Trash2, Pencil, FileDown } from 'lucide-react';
-import { BULAN_NAMES } from '@/lib/store';
 import { toast } from 'sonner';
 
 const PreviewSurat = () => {
@@ -75,7 +74,7 @@ const PreviewSurat = () => {
           <div>
             <div className="font-medium text-sm text-foreground">{surat.nama}</div>
             <div className="text-xs text-muted-foreground">
-              NISN: {surat.nisn || '-'} · No: {surat.nomorSurat || '-'} · {BULAN_NAMES[surat.bulan]} {surat.tahun}
+              NISN: {surat.nisn || '-'} · No: {surat.nomorSurat || '-'} · {new Date(surat.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
               {surat.updatedAt && ` | Diedit: ${new Date(surat.updatedAt).toLocaleDateString('id-ID')}`}
             </div>
           </div>
