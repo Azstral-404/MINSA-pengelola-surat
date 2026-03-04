@@ -1,4 +1,26 @@
 // MINSA - Store & Types
+
+export interface BiodataField {
+  key: string;
+  label: string;
+  placeholder: string;
+  inputType: 'text' | 'date' | 'select';
+  isCustom?: boolean;
+}
+
+export const DEFAULT_BIODATA: BiodataField[] = [
+  { key: 'nama', label: 'Nama', placeholder: '{nama}', inputType: 'text' },
+  { key: 'tempatLahir', label: 'Tempat Lahir', placeholder: '{tempat_lahir}', inputType: 'text' },
+  { key: 'tanggalLahir', label: 'Tanggal Lahir', placeholder: '{tanggal_lahir}', inputType: 'date' },
+  { key: 'jenisKelamin', label: 'Jenis Kelamin', placeholder: '{jenis_kelamin}', inputType: 'select' },
+  { key: 'kelas', label: 'Kelas', placeholder: '{kelas}', inputType: 'select' },
+  { key: 'noInduk', label: 'No. Induk', placeholder: '{no_induk}', inputType: 'text' },
+  { key: 'nisn', label: 'NISN', placeholder: '{nisn}', inputType: 'text' },
+  { key: 'namaOrangTua', label: 'Nama Orang Tua/Wali', placeholder: '{nama_orang_tua}', inputType: 'text' },
+  { key: 'alamat', label: 'Alamat', placeholder: '{alamat}', inputType: 'text' },
+  { key: 'tahunAjaran', label: 'Tahun Ajaran', placeholder: '{tahun_ajaran}', inputType: 'text' },
+];
+
 export interface KepalaMadrasah {
   id: string;
   nip: string;
@@ -17,6 +39,7 @@ export interface JenisSurat {
   templateJudul: string;
   templateIsi: string;
   createdAt: string;
+  selectedBiodata?: string[];
 }
 
 export interface Surat {
@@ -39,6 +62,7 @@ export interface Surat {
   arah: 'masuk' | 'keluar';
   createdAt: string;
   updatedAt?: string;
+  extraFields?: Record<string, string>;
 }
 
 export type ThemeName = 'light' | 'dark';
@@ -50,8 +74,8 @@ export interface SuratHeader {
   school: string;
   address: string;
   contact: string;
-  logoUrl: string; // base64 data URL
-  logoSize: number; // in mm, default 22
+  logoUrl: string;
+  logoSize: number;
 }
 
 export interface AppSettings {
@@ -66,6 +90,7 @@ export interface AppSettings {
   nsm: string;
   npsn: string;
   nomorSuratFormat: string;
+  customBiodata?: BiodataField[];
 }
 
 export interface AppData {
@@ -77,8 +102,8 @@ const DEFAULT_HEADER: SuratHeader = {
   line1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
   line2: 'KANTOR KEMENTERIAN AGAMA KOTA LANGSA',
   school: 'MADRASAH IBTIDAIYAH NEGERI 1 LANGSA',
-  address: 'Jl. T.M Bahrum No.2 Kel. Jawa Kec. Langsa Kota, Kota Langsa, 24412',
-  contact: 'Telp: (0641) 426487 Email: minaborong@gmail.com',
+  address: 'Jln.Medan - Banda Aceh Gp.Teungoh Langsa Kota',
+  contact: 'Email : minsa1959@gmail.com',
   logoUrl: '',
   logoSize: 22,
 };
@@ -93,9 +118,10 @@ const DEFAULT_DATA: AppData = {
     activeTahunAjaran: '',
     dashboardTitle: 'Sistem Surat',
     suratHeader: DEFAULT_HEADER,
-    nsm: '111111730001',
-    npsn: '10105537',
+    nsm: '111111740001',
+    npsn: '60703494',
     nomorSuratFormat: 'B. {nomor} /Mi.01.21/1/PP.01.1/{bulan}/{tahun}',
+    customBiodata: [],
   },
   surat: [],
 };
@@ -114,8 +140,9 @@ export function loadData(): AppData {
           ...DEFAULT_DATA.settings,
           ...parsed.settings,
           suratHeader: { ...DEFAULT_HEADER, ...(parsed.settings?.suratHeader || {}) },
+          customBiodata: parsed.settings?.customBiodata || [],
         },
-        surat: (parsed.surat || []).map((s: any) => ({ ...s, arah: s.arah || 'keluar' })),
+        surat: (parsed.surat || []).map((s: any) => ({ ...s, arah: s.arah || 'keluar', extraFields: s.extraFields || {} })),
       };
     }
   } catch {}
@@ -176,4 +203,23 @@ export function formatNomorSurat(nomorSurat: string, bulan: number, tahun: numbe
     .replace(/\{bulan\}/gi, bulanStr)
     .replace(/\{tahun\}/gi, String(tahun));
   return `NOMOR : ${result}`;
+}
+
+export function getAllBiodataFields(settings: AppSettings): BiodataField[] {
+  return [...DEFAULT_BIODATA, ...(settings.customBiodata || []).map(f => ({ ...f, isCustom: true }))];
+}
+
+export function generateBiodataTableHtml(selectedKeys: string[], allFields: BiodataField[]): string {
+  const selected = selectedKeys.map(key => allFields.find(f => f.key === key)).filter(Boolean) as BiodataField[];
+  if (selected.length === 0) return '';
+  
+  const maxLabelLen = Math.max(...selected.map(f => f.label.length));
+  
+  let html = '<table style="border-collapse:collapse;margin:8px 0;">';
+  for (const field of selected) {
+    const paddedLabel = field.label.padEnd(maxLabelLen, '\u00A0');
+    html += `<tr><td style="padding:2px 8px 2px 0;vertical-align:top;white-space:nowrap;">${paddedLabel}</td><td style="padding:2px 4px;vertical-align:top;">:</td><td style="padding:2px 0 2px 4px;">${field.placeholder}</td></tr>`;
+  }
+  html += '</table>';
+  return html;
 }

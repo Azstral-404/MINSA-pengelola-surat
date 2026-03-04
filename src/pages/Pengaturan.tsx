@@ -1,33 +1,22 @@
 import React, { useState, useRef } from 'react';
 import { useApp } from '@/contexts/AppContext';
-import { generateId, slugify, JenisSurat, COLOR_THEMES, ColorTheme } from '@/lib/store';
+import { generateId, slugify, JenisSurat, COLOR_THEMES, ColorTheme, DEFAULT_BIODATA, BiodataField, getAllBiodataFields, generateBiodataTableHtml } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, UserPlus } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, UserPlus, ListChecks } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
 
-const BIODATA_ITEMS = [
-  { label: 'Nama', placeholder: '{nama}' },
-  { label: 'Tempat Lahir', placeholder: '{tempat_lahir}' },
-  { label: 'Tanggal Lahir', placeholder: '{tanggal_lahir}' },
-  { label: 'Jenis Kelamin', placeholder: '{jenis_kelamin}' },
-  { label: 'Kelas', placeholder: '{kelas}' },
-  { label: 'No. Induk', placeholder: '{no_induk}' },
-  { label: 'NISN', placeholder: '{nisn}' },
-  { label: 'Nama Orang Tua', placeholder: '{nama_orang_tua}' },
-  { label: 'Alamat', placeholder: '{alamat}' },
-  { label: 'Tahun Ajaran', placeholder: '{tahun_ajaran}' },
-];
-
-const BiodataInsertButton = ({ editorRef }: { editorRef: React.RefObject<HTMLDivElement> }) => {
+const BiodataInsertButton = ({ editorRef, settings }: { editorRef: React.RefObject<HTMLDivElement>; settings: any }) => {
   const [open, setOpen] = useState(false);
+  const allFields = getAllBiodataFields(settings);
 
   const insertPlaceholder = (text: string) => {
     const el = editorRef.current;
@@ -47,9 +36,9 @@ const BiodataInsertButton = ({ editorRef }: { editorRef: React.RefObject<HTMLDiv
       <PopoverContent className="w-56 p-2" align="start">
         <p className="text-xs font-medium text-muted-foreground mb-2">Sisipkan placeholder:</p>
         <div className="flex flex-wrap gap-1">
-          {BIODATA_ITEMS.map(item => (
+          {allFields.map(item => (
             <button
-              key={item.placeholder}
+              key={item.key}
               onClick={() => insertPlaceholder(item.placeholder)}
               className="px-2 py-1 text-xs rounded-md bg-muted hover:bg-accent hover:text-accent-foreground transition-colors"
             >
@@ -59,6 +48,64 @@ const BiodataInsertButton = ({ editorRef }: { editorRef: React.RefObject<HTMLDiv
         </div>
       </PopoverContent>
     </Popover>
+  );
+};
+
+const BiodataChecklistSection = ({
+  selectedBiodata,
+  onSelectedChange,
+  editorRef,
+  settings,
+}: {
+  selectedBiodata: string[];
+  onSelectedChange: (keys: string[]) => void;
+  editorRef: React.RefObject<HTMLDivElement>;
+  settings: any;
+}) => {
+  const allFields = getAllBiodataFields(settings);
+
+  const toggleKey = (key: string) => {
+    if (selectedBiodata.includes(key)) {
+      onSelectedChange(selectedBiodata.filter(k => k !== key));
+    } else {
+      onSelectedChange([...selectedBiodata, key]);
+    }
+  };
+
+  const insertBiodataTable = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    if (selectedBiodata.length === 0) { toast.error('Pilih biodata terlebih dahulu'); return; }
+    const html = generateBiodataTableHtml(selectedBiodata, allFields);
+    el.focus();
+    document.execCommand('insertHTML', false, html);
+    toast.success('Tabel biodata disisipkan');
+  };
+
+  return (
+    <div className="border border-border rounded-md p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <Label className="text-sm font-medium flex items-center gap-1">
+          <ListChecks className="h-4 w-4" />Pilih Biodata untuk Template
+        </Label>
+        <Button variant="outline" size="sm" onClick={insertBiodataTable}>
+          Sisipkan Tabel Biodata
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">Centang field yang ingin ditampilkan pada form surat dan dokumen output.</p>
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+        {allFields.map(field => (
+          <label key={field.key} className="flex items-center gap-2 text-sm cursor-pointer p-1.5 rounded hover:bg-muted/50">
+            <Checkbox
+              checked={selectedBiodata.includes(field.key)}
+              onCheckedChange={() => toggleKey(field.key)}
+            />
+            <span>{field.label}</span>
+            {field.isCustom && <span className="text-[10px] px-1 py-0.5 rounded bg-accent text-accent-foreground">Kustom</span>}
+          </label>
+        ))}
+      </div>
+    </div>
   );
 };
 
@@ -76,12 +123,17 @@ const Pengaturan = () => {
   const [jenisLabel, setJenisLabel] = useState('');
   const [jenisJudul, setJenisJudul] = useState('');
   const [jenisIsi, setJenisIsi] = useState('');
+  const [newSelectedBiodata, setNewSelectedBiodata] = useState<string[]>([]);
   const [editingJenis, setEditingJenis] = useState<string | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editJudul, setEditJudul] = useState('');
   const [editIsi, setEditIsi] = useState('');
+  const [editSelectedBiodata, setEditSelectedBiodata] = useState<string[]>([]);
 
-  // Header state
+  // Custom biodata state
+  const [newCustomLabel, setNewCustomLabel] = useState('');
+  const [newCustomKey, setNewCustomKey] = useState('');
+
   const h = data.settings.suratHeader;
   const updateHeader = (field: string, value: string) => {
     updateData(d => ({
@@ -137,9 +189,10 @@ const Pengaturan = () => {
         id: generateId(), slug, label: jenisLabel.trim(),
         templateJudul: jenisJudul.trim() || jenisLabel.trim().toUpperCase(),
         templateIsi: jenisIsi.trim(), createdAt: new Date().toISOString(),
+        selectedBiodata: newSelectedBiodata,
       }] },
     }));
-    setJenisLabel(''); setJenisJudul(''); setJenisIsi('');
+    setJenisLabel(''); setJenisJudul(''); setJenisIsi(''); setNewSelectedBiodata([]);
     toast.success('Jenis surat ditambahkan');
   };
   const deleteJenisSurat = (id: string) => {
@@ -151,12 +204,13 @@ const Pengaturan = () => {
   };
   const startEditJenis = (js: JenisSurat) => {
     setEditingJenis(js.id); setEditLabel(js.label); setEditJudul(js.templateJudul); setEditIsi(js.templateIsi);
+    setEditSelectedBiodata(js.selectedBiodata || []);
   };
   const saveEditJenis = () => {
     if (!editingJenis) return;
     updateData(d => ({
       ...d, settings: { ...d.settings, jenisSurat: d.settings.jenisSurat.map(j =>
-        j.id === editingJenis ? { ...j, label: editLabel.trim(), templateJudul: editJudul.trim(), templateIsi: editIsi.trim(), slug: slugify(editLabel.trim()) } : j
+        j.id === editingJenis ? { ...j, label: editLabel.trim(), templateJudul: editJudul.trim(), templateIsi: editIsi.trim(), slug: slugify(editLabel.trim()), selectedBiodata: editSelectedBiodata } : j
       ) },
     }));
     setEditingJenis(null);
@@ -177,7 +231,6 @@ const Pengaturan = () => {
     e.target.value = '';
   };
 
-  // ContentEditable handler for rich paste
   const handleTemplatePaste = (e: React.ClipboardEvent<HTMLDivElement>, isEdit: boolean) => {
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
@@ -186,16 +239,37 @@ const Pengaturan = () => {
     document.execCommand('insertHTML', false, content);
   };
 
-  const getTemplateHtml = (ref: HTMLDivElement | null) => ref?.innerHTML || '';
+  // Custom biodata CRUD
+  const addCustomBiodata = () => {
+    if (!newCustomLabel.trim()) { toast.error('Label wajib diisi'); return; }
+    const key = newCustomKey.trim() || slugify(newCustomLabel.trim()).replace(/-/g, '_');
+    const allFields = getAllBiodataFields(data.settings);
+    if (allFields.some(f => f.key === key)) { toast.error('Key sudah digunakan'); return; }
+    const newField: BiodataField = {
+      key, label: newCustomLabel.trim(), placeholder: `{${key}}`, inputType: 'text', isCustom: true,
+    };
+    updateData(d => ({
+      ...d, settings: { ...d.settings, customBiodata: [...(d.settings.customBiodata || []), newField] },
+    }));
+    setNewCustomLabel(''); setNewCustomKey('');
+    toast.success('Biodata kustom ditambahkan');
+  };
+  const deleteCustomBiodata = (key: string) => {
+    updateData(d => ({
+      ...d, settings: { ...d.settings, customBiodata: (d.settings.customBiodata || []).filter(f => f.key !== key) },
+    }));
+    toast.success('Dihapus');
+  };
 
   return (
     <div className="space-y-6 max-w-4xl">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
       <Tabs defaultValue="kepala">
-        <TabsList className="grid grid-cols-6 w-full">
+        <TabsList className="grid grid-cols-7 w-full">
           <TabsTrigger value="kepala">Kepala</TabsTrigger>
           <TabsTrigger value="tahun">Tahun Ajaran</TabsTrigger>
           <TabsTrigger value="surat">Jenis Surat</TabsTrigger>
+          <TabsTrigger value="biodata">Biodata</TabsTrigger>
           <TabsTrigger value="header">Header Surat</TabsTrigger>
           <TabsTrigger value="tema">Tema</TabsTrigger>
           <TabsTrigger value="penyimpanan">Data</TabsTrigger>
@@ -296,8 +370,15 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
-                    <BiodataInsertButton editorRef={templateRef} />
+                    <BiodataInsertButton editorRef={templateRef} settings={data.settings} />
                   </div>
+                  {/* Biodata checklist for new template */}
+                  <BiodataChecklistSection
+                    selectedBiodata={newSelectedBiodata}
+                    onSelectedChange={setNewSelectedBiodata}
+                    editorRef={templateRef}
+                    settings={data.settings}
+                  />
                 </div>
               )}
 
@@ -323,9 +404,16 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
-                    <BiodataInsertButton editorRef={editTemplateRef} />
+                    <BiodataInsertButton editorRef={editTemplateRef} settings={data.settings} />
                     <Button variant="ghost" size="sm" onClick={() => setEditingJenis(null)}>Batal</Button>
                   </div>
+                  {/* Biodata checklist for edit template */}
+                  <BiodataChecklistSection
+                    selectedBiodata={editSelectedBiodata}
+                    onSelectedChange={setEditSelectedBiodata}
+                    editorRef={editTemplateRef}
+                    settings={data.settings}
+                  />
                 </div>
               )}
 
@@ -333,13 +421,82 @@ const Pengaturan = () => {
                 <div className="space-y-2 mt-4">
                   {data.settings.jenisSurat.map(js => (
                     <div key={js.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                      <div className="flex-1"><div className="font-medium text-sm">{js.label}</div><div className="text-xs text-muted-foreground">Judul: {js.templateJudul}</div></div>
+                      <div className="flex-1">
+                        <div className="font-medium text-sm">{js.label}</div>
+                        <div className="text-xs text-muted-foreground">Judul: {js.templateJudul}</div>
+                        {js.selectedBiodata && js.selectedBiodata.length > 0 && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            Biodata: {js.selectedBiodata.map(key => {
+                              const field = getAllBiodataFields(data.settings).find(f => f.key === key);
+                              return field?.label || key;
+                            }).join(', ')}
+                          </div>
+                        )}
+                      </div>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="sm" onClick={() => startEditJenis(js)}>Edit</Button>
                         <Button variant="ghost" size="icon" onClick={() => deleteJenisSurat(js.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </div>
                   ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Biodata Kustom Tab */}
+        <TabsContent value="biodata">
+          <Card>
+            <CardHeader><CardTitle>Biodata Kustom</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Tambahkan field biodata baru yang tidak tersedia secara default (misalnya: NIK, No. KK, dll). Field yang ditambahkan akan muncul di checklist biodata saat membuat template surat.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <Label>Label</Label>
+                  <Input value={newCustomLabel} onChange={e => setNewCustomLabel(e.target.value)} placeholder="cth: NIK" />
+                </div>
+                <div>
+                  <Label>Key (opsional, auto-generate)</Label>
+                  <Input value={newCustomKey} onChange={e => setNewCustomKey(e.target.value)} placeholder="cth: nik" />
+                  <p className="text-xs text-muted-foreground mt-1">Placeholder akan jadi: {`{${newCustomKey.trim() || slugify(newCustomLabel.trim() || 'key').replace(/-/g, '_')}}`}</p>
+                </div>
+              </div>
+              <Button onClick={addCustomBiodata} size="sm"><Plus className="mr-1 h-4 w-4" />Tambah Biodata</Button>
+
+              {/* Default biodata list */}
+              <div className="border-t border-border pt-4 mt-4">
+                <h3 className="font-medium text-sm mb-2">Biodata Default</h3>
+                <div className="space-y-1">
+                  {DEFAULT_BIODATA.map(f => (
+                    <div key={f.key} className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
+                      <span>{f.label}</span>
+                      <code className="text-xs text-muted-foreground">{f.placeholder}</code>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom biodata list */}
+              {(data.settings.customBiodata || []).length > 0 && (
+                <div className="border-t border-border pt-4 mt-4">
+                  <h3 className="font-medium text-sm mb-2">Biodata Kustom</h3>
+                  <div className="space-y-1">
+                    {(data.settings.customBiodata || []).map(f => (
+                      <div key={f.key} className="flex items-center justify-between p-2 bg-muted/50 rounded text-sm">
+                        <span>{f.label}</span>
+                        <div className="flex items-center gap-2">
+                          <code className="text-xs text-muted-foreground">{f.placeholder}</code>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteCustomBiodata(f.key)}>
+                            <Trash2 className="h-3 w-3 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
@@ -364,7 +521,7 @@ const Pengaturan = () => {
                   <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>
                     <Upload className="mr-1 h-4 w-4" />{h.logoUrl ? 'Ganti Logo' : 'Upload Logo'}
                   </Button>
-              {h.logoUrl && <Button variant="ghost" size="sm" onClick={() => updateHeader('logoUrl', '')}>Hapus Logo</Button>}
+                  {h.logoUrl && <Button variant="ghost" size="sm" onClick={() => updateHeader('logoUrl', '')}>Hapus Logo</Button>}
                 </div>
                 <div className="flex items-center gap-3 ml-2">
                   <Label className="text-xs whitespace-nowrap">Ukuran: {h.logoSize || 22}mm</Label>
@@ -401,7 +558,6 @@ const Pengaturan = () => {
           <Card>
             <CardHeader><CardTitle>Tema Tampilan</CardTitle></CardHeader>
             <CardContent className="space-y-6">
-              {/* Color theme grid */}
               <div>
                 <Label className="mb-2 block">Warna Tema</Label>
                 <div className="grid grid-cols-5 gap-3">
@@ -417,8 +573,6 @@ const Pengaturan = () => {
                   ))}
                 </div>
               </div>
-
-              {/* Dark/light switch */}
               <div className="flex items-center justify-between p-4 rounded-lg border border-border">
                 <div className="flex items-center gap-3">
                   {isDark ? <Moon className="h-5 w-5 text-muted-foreground" /> : <Sun className="h-5 w-5 text-amber-500" />}
@@ -432,6 +586,7 @@ const Pengaturan = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
         {/* Penyimpanan / Data */}
         <TabsContent value="penyimpanan">
           <Card>
