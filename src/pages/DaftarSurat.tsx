@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
-import { BULAN_NAMES } from '@/lib/store';
+import { BULAN_NAMES, isInTahunAjaran } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -19,7 +19,9 @@ const DaftarSurat = () => {
   const jenisSurat = data.settings.jenisSurat.find(j => j.slug === jenisSlug);
   if (!jenisSurat) return <div className="text-center py-10 text-muted-foreground">Jenis surat tidak ditemukan.</div>;
 
+  const activeTA = data.settings.activeTahunAjaran;
   let suratList = data.surat.filter(s => s.jenisSuratId === jenisSurat.id);
+  if (activeTA) suratList = suratList.filter(s => isInTahunAjaran(s, activeTA));
   if (filter !== 'semua') suratList = suratList.filter(s => s.arah === filter);
   if (bulanFilter !== 'semua') suratList = suratList.filter(s => String(s.bulan) === bulanFilter);
   suratList.sort((a, b) => b.createdAt.localeCompare(a.createdAt));

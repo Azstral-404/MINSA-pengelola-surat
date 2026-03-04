@@ -3,7 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BULAN_NAMES } from '@/lib/store';
+import { BULAN_NAMES, isInTahunAjaran } from '@/lib/store';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownLeft, Plus, Pencil, Check } from 'lucide-react';
 
@@ -22,14 +22,19 @@ const Index = () => {
     setEditingTitle(false);
   };
 
-  const masukTotal = data.surat.filter(s => s.arah === 'masuk').length;
-  const keluarTotal = data.surat.filter(s => s.arah === 'keluar').length;
-  const masukBulan = data.surat.filter(s => s.arah === 'masuk' && s.bulan === currentMonth && s.tahun === currentYear).length;
-  const keluarBulan = data.surat.filter(s => s.arah === 'keluar' && s.bulan === currentMonth && s.tahun === currentYear).length;
-
-  const recentSurat = [...data.surat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
   const { jenisSurat } = data.settings;
   const activeTA = data.settings.activeTahunAjaran;
+
+  const filteredSurat = activeTA
+    ? data.surat.filter(s => isInTahunAjaran(s, activeTA))
+    : data.surat;
+
+  const masukTotal = filteredSurat.filter(s => s.arah === 'masuk').length;
+  const keluarTotal = filteredSurat.filter(s => s.arah === 'keluar').length;
+  const masukBulan = filteredSurat.filter(s => s.arah === 'masuk' && s.bulan === currentMonth && s.tahun === currentYear).length;
+  const keluarBulan = filteredSurat.filter(s => s.arah === 'keluar' && s.bulan === currentMonth && s.tahun === currentYear).length;
+
+  const recentSurat = [...filteredSurat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
 
   return (
     <div className="space-y-6">

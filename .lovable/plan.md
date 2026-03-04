@@ -1,39 +1,22 @@
-# Plan: Filter Surat by Tahun Ajaran (Academic Year)
-
-## Logic
-
-TA format is `"2025/2026"`. This means:
-
-- **Semester Ganjil**: Juli–Desember of the first year (2025)
-- **Semester Genap**: Januari–Juni of the second year (2026)
-- Full range: July [firstYear] → June [secondYear]
-
-A surat belongs to a TA if its `bulan` and `tahun` fields fall within this range.
+# Plan: Add timestamps to Surat info display
 
 ## Changes
 
-### 1. Add helper function (`src/lib/store.ts`)
+### 1. Add `updatedAt` field to Surat model (`src/lib/store.ts`)
 
-Add `isInTahunAjaran(surat, taLabel)` that:
+- Add `updatedAt: string` to `Surat` interface
 
-- Parses TA label `"2025/2026"` → `startYear=2025`, `endYear=2026`
-- Returns true if `(tahun === startYear && bulan >= 7)` OR `(tahun === endYear && bulan <= 6)`
+### 2. Set timestamps on create/edit (`src/pages/TambahSurat.tsx`)
 
-### 2. Filter dashboard stats and recent list (`src/pages/Index.tsx`)
+- On create: set both `createdAt` and `updatedAt` to `new Date().toISOString()`
+- On edit: update `updatedAt` only
 
-- If `activeTA` is set, filter all stats (`masukTotal`, `keluarTotal`, `masukBulan`, `keluarBulan`) and `recentSurat` using `isInTahunAjaran`
-- If no TA selected, show all (current behavior)
-- [SURAT KETERANGAN AKTIF · (input tanggal) Maret 2026](https://07b2ca18-5fcd-431e-81c3-a20d0ebfba53.lovableproject.com/surat/surat-keterangan-aktif/mmbac0kb1ec5c/preview) | last edit
+### 3. Update info line in PreviewSurat (`src/pages/PreviewSurat.tsx`)
 
-### 3. Filter DaftarSurat list (`src/pages/DaftarSurat.tsx`)
+- Change line 77 from: `NISN: {surat.nisn} · Maret 2026`
+- To: `NISN: {surat.nisn} · No: {surat.nomorSurat} · {tanggal bulan tahun} | Dibuat: 04/03/2026 | Diedit: 04/03/2026`
+- Format dates with `toLocaleDateString('id-ID')`
 
-- If `activeTA` is set, also filter `suratList` by `isInTahunAjaran`
+### 4. Update info line in DaftarSurat (`src/pages/DaftarSurat.tsx`)
 
-## Files
-
-
-| File                        | Changes                              |
-| --------------------------- | ------------------------------------ |
-| `src/lib/store.ts`          | Add `isInTahunAjaran` helper         |
-| `src/pages/Index.tsx`       | Filter stats and recent by active TA |
-| `src/pages/DaftarSurat.tsx` | Filter surat list by active TA       |
+- Same pattern on line 92: append `| Dibuat: ... | Diedit: ...`
