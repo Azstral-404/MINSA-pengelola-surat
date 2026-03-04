@@ -1,31 +1,67 @@
+# Plan: Dynamic Biodata System, Template-Driven Form, and Default Updates
+
+## Overview
+
+Currently biodata fields are hardcoded. This plan makes them dynamic and configurable per jenis surat, formats selected biodata as a structured table in the document output, and makes the TambahSurat form show only fields that the template uses. except jenis surat, nomor surat, dan kepala madrasah. wich its stay at jenis surat , nomor surat first and kepala madrasah last
+
+## 1. Add `biodataFields` to `JenisSurat` and custom biodata to `AppSettings`
+
+**File: `src/lib/store.ts**`
+
+- Add `BiodataField` interface: `{ key: string; label: string; placeholder: string; inputType: 'text' | 'date' | 'select'; isCustom?: boolean }`
+- Add `customBiodata: BiodataField[]` to `AppSettings` for user-created fields (e.g. NIK)
+- Add `selectedBiodata: string[]` (array of keys) to `JenisSurat` — tracks which biodata fields this template uses
+- Add `extraFields: Record<string, string>` to `Surat` interface for custom field values
+- Export a `DEFAULT_BIODATA` constant with the 10 standard fields
+- Update defaults: `address` = `'Jln.Medan - Banda Aceh Gp.Teungoh Langsa Kota'`, `contact` = `'Email : minsa1959@gmail.com'`, `nsm` = `'111111740001'`, `npsn` = `'60703494'`
+
+## 2. Biodata selection UI in Pengaturan > Jenis Surat
+
+**File: `src/pages/Pengaturan.tsx**`
+
+- In both "Tambah" and "Edit" template sections, add a **Biodata** checklist area below the template editor
+- Show all default + custom biodata as checkboxes; user toggles which ones to include
+- Store selected keys in the jenis surat's `selectedBiodata` array
+- When biodata items are selected, auto-generate a formatted HTML table block (like the reference image) showing:
+  ```
+  Nama                     : {nama}
+  Tempat/Tanggal Lahir     : {tempat_lahir}, {tanggal_lahir}
+  ...
+  ```
+  User can insert this block into template via a "Sisipkan Biodata" button
+- Add a new **"Biodata Kustom"** section (or sub-section in the Jenis Surat tab) where users can add/remove custom biodata fields (label + key). These become available in the checklist and in the form.
+
+## 3. Template-driven form in TambahSurat
+
+**File: `src/pages/TambahSurat.tsx**`
+
+- Read `jenisSurat.selectedBiodata` to determine which fields to show
+- Only render form fields for biodata that are in `selectedBiodata`
+- For custom fields, render generic text inputs and store values in `surat.extraFields[key]`
+- Keep Nomor Surat, Arah, and Kepala Madrasah always visible
+
+## 4. A4Preview handles custom fields
+
+**File: `src/components/A4Preview.tsx**`
+
+- Extend `parseTemplate` to also replace custom field placeholders from `surat.extraFields`
+- Format biodata section as aligned table (label padded, colon-separated) matching the reference image
+
+## 5. Update default header values
+
+**File: `src/lib/store.ts**`
+
+- `address`: `'Jln.Medan - Banda Aceh Gp.Teungoh Langsa Kota'`
+- `contact`: `'Email : minsa1959@gmail.com'`
+- `nsm`: `'111111740001'`
+- `npsn`: `'60703494'`
+
+## Summary
 
 
-# Plan: Fix Biodata Table Insertion at Cursor Position & Clean Deletion
-
-## Problems
-1. **"Sisipkan Tabel Biodata" always inserts at the beginning** — `document.execCommand('insertHTML')` loses the cursor position because `el.focus()` resets it. Need to save/restore the selection, or use the Selection API to insert at the current cursor position.
-2. **Invisible table remnants when deleting biodata** — The generated HTML table (`<table>` tags) leaves behind empty/invisible table elements that can't be easily deleted in contentEditable. Need to generate simpler HTML (plain `<div>` lines instead of `<table>`) so deletion works naturally.
-
-## Changes
-
-### 1. Fix cursor-position insertion (`src/pages/Pengaturan.tsx`, lines 39-47)
-
-Replace the `insertBiodataTable` function in `BiodataChecklistSection`:
-- Before inserting, check if there's a saved selection/range inside the editor
-- If no selection exists inside the editor, move cursor to the end before inserting
-- Use `window.getSelection()` and `Range` API to insert at current cursor position
-
-### 2. Replace `<table>` with simple `<div>` format (`src/lib/store.ts`, `generateBiodataTableHtml`)
-
-Change `generateBiodataTableHtml` to output simple `<div>` lines instead of `<table>`:
-```html
-<div>Nama&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {nama}</div>
-<div>Tempat Lahir&nbsp;: {tempat_lahir}</div>
-```
-This makes it trivially deletable in contentEditable — just select and delete like normal text. Use `&nbsp;` padding to align colons.
-
-| File | Changes |
-|------|---------|
-| `src/pages/Pengaturan.tsx` | Fix `insertBiodataTable` to insert at cursor position using Selection API |
-| `src/lib/store.ts` | Change `generateBiodataTableHtml` from `<table>` to simple `<div>` lines with `&nbsp;` alignment |
-
+| File                           | Changes                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------- |
+| `src/lib/store.ts`             | Add `BiodataField`, `customBiodata`, `selectedBiodata`, `extraFields`, update defaults |
+| `src/pages/Pengaturan.tsx`     | Add biodata checklist per template, custom biodata CRUD, formatted insert              |
+| `src/pages/TambahSurat.tsx`    | Dynamic form based on `selectedBiodata`, support custom fields                         |
+| `src/components/A4Preview.tsx` | Parse custom placeholders, formatted biodata table output                              |
