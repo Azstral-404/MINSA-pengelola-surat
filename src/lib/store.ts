@@ -61,6 +61,8 @@ export interface AppSettings {
   activeTahunAjaran: string;
   dashboardTitle: string;
   suratHeader: SuratHeader;
+  nsm: string;
+  npsn: string;
 }
 
 export interface AppData {
@@ -87,6 +89,8 @@ const DEFAULT_DATA: AppData = {
     activeTahunAjaran: '',
     dashboardTitle: 'Sistem Surat',
     suratHeader: DEFAULT_HEADER,
+    nsm: '111111730001',
+    npsn: '10105537',
   },
   surat: [],
 };
