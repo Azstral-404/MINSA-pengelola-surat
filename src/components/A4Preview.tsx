@@ -18,7 +18,10 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
       .replace(/\{tempat_lahir\}/gi, surat.tempatLahir)
       .replace(/\{tanggal_lahir\}/gi, surat.tanggalLahir)
       .replace(/\{jenis_kelamin\}/gi, surat.jenisKelamin)
-      .replace(/\{kelas\}/gi, surat.kelas)
+      .replace(/\{kelas\}/gi, () => {
+        const opt = KELAS_OPTIONS.find(o => o.value === surat.kelas);
+        return opt ? opt.label : surat.kelas;
+      })
       .replace(/\{no_induk\}/gi, surat.noInduk)
       .replace(/\{nisn\}/gi, surat.nisn)
       .replace(/\{nama_orang_tua\}/gi, surat.namaOrangTua)
