@@ -1,48 +1,67 @@
+# Plan: Dynamic Biodata System, Template-Driven Form, and Default Updates
+
+## Overview
+
+Currently biodata fields are hardcoded. This plan makes them dynamic and configurable per jenis surat, formats selected biodata as a structured table in the document output, and makes the TambahSurat form show only fields that the template uses. except jenis surat, nomor surat, dan kepala madrasah. wich its stay at jenis surat , nomor surat first and kepala madrasah last
+
+## 1. Add `biodataFields` to `JenisSurat` and custom biodata to `AppSettings`
+
+**File: `src/lib/store.ts**`
+
+- Add `BiodataField` interface: `{ key: string; label: string; placeholder: string; inputType: 'text' | 'date' | 'select'; isCustom?: boolean }`
+- Add `customBiodata: BiodataField[]` to `AppSettings` for user-created fields (e.g. NIK)
+- Add `selectedBiodata: string[]` (array of keys) to `JenisSurat` — tracks which biodata fields this template uses
+- Add `extraFields: Record<string, string>` to `Surat` interface for custom field values
+- Export a `DEFAULT_BIODATA` constant with the 10 standard fields
+- Update defaults: `address` = `'Jln.Medan - Banda Aceh Gp.Teungoh Langsa Kota'`, `contact` = `'Email : minsa1959@gmail.com'`, `nsm` = `'111111740001'`, `npsn` = `'60703494'`
+
+## 2. Biodata selection UI in Pengaturan > Jenis Surat
+
+**File: `src/pages/Pengaturan.tsx**`
+
+- In both "Tambah" and "Edit" template sections, add a **Biodata** checklist area below the template editor
+- Show all default + custom biodata as checkboxes; user toggles which ones to include
+- Store selected keys in the jenis surat's `selectedBiodata` array
+- When biodata items are selected, auto-generate a formatted HTML table block (like the reference image) showing:
+  ```
+  Nama                     : {nama}
+  Tempat/Tanggal Lahir     : {tempat_lahir}, {tanggal_lahir}
+  ...
+  ```
+  User can insert this block into template via a "Sisipkan Biodata" button
+- Add a new **"Biodata Kustom"** section (or sub-section in the Jenis Surat tab) where users can add/remove custom biodata fields (label + key). These become available in the checklist and in the form.
+
+## 3. Template-driven form in TambahSurat
+
+**File: `src/pages/TambahSurat.tsx**`
+
+- Read `jenisSurat.selectedBiodata` to determine which fields to show
+- Only render form fields for biodata that are in `selectedBiodata`
+- For custom fields, render generic text inputs and store values in `surat.extraFields[key]`
+- Keep Nomor Surat, Arah, and Kepala Madrasah always visible
+
+## 4. A4Preview handles custom fields
+
+**File: `src/components/A4Preview.tsx**`
+
+- Extend `parseTemplate` to also replace custom field placeholders from `surat.extraFields`
+- Format biodata section as aligned table (label padded, colon-separated) matching the reference image
+
+## 5. Update default header values
+
+**File: `src/lib/store.ts**`
+
+- `address`: `'Jln.Medan - Banda Aceh Gp.Teungoh Langsa Kota'`
+- `contact`: `'Email : minsa1959@gmail.com'`
+- `nsm`: `'111111740001'`
+- `npsn`: `'60703494'`
+
+## Summary
 
 
-# Plan: Fix Biodata Table Alignment, Responsive Tabs with Icons, and Cursor Insertion
-
-## 3 Issues to Fix
-
-### 1. Biodata table colon (`:`) alignment in `generateBiodataTableHtml`
-
-**Problem**: Using `\u00A0` padding based on character count doesn't produce visually aligned colons because proportional fonts have different character widths.
-
-**Fix** (`src/lib/store.ts`): Replace the `<div>` approach with an inline `<table>` using fixed-width styling, or use `<span style="display:inline-block; width:Xch">` for monospace-like alignment. Best approach: use a simple two-column layout with `display:inline-block` and a fixed `min-width` on the label span:
-
-```html
-<div><span style="display:inline-block;min-width:20ch">Nama</span>: {nama}</div>
-<div><span style="display:inline-block;min-width:20ch">Tempat Lahir</span>: {tempat_lahir}</div>
-```
-
-The `ch` unit ensures consistent alignment regardless of font. Calculate `min-width` as `maxLabelLen + 1` in `ch` units.
-
-### 2. Responsive tabs with icons in Pengaturan
-
-**Problem**: 7-column grid tabs overflow on small screens.
-
-**Fix** (`src/pages/Pengaturan.tsx`):
-- Replace `grid grid-cols-7` with `flex flex-wrap` or use responsive classes
-- Add icons to each tab trigger:
-  - Kepala → `UserRound`
-  - Tahun Ajaran → `CalendarDays`  
-  - Jenis Surat → `FileText`
-  - Biodata → `Contact`
-  - Header Surat → `Building`
-  - Tema → `Palette`
-  - Data → `Database`
-- On small screens, show only icon (hide text via `hidden sm:inline`). On larger screens show icon + text.
-
-### 3. Cursor-position insertion still not working
-
-**Problem**: `el.focus()` resets cursor. The `savedSelectionRef` is local to `BiodataChecklistSection` but the `useEffect` listeners may not fire properly since `blur` on the editor triggers state update (`onBlur={setJenisIsi(innerHTML)}`) which re-renders and resets the `contentEditable`.
-
-**Fix**: The `dangerouslySetInnerHTML` re-render on blur destroys the DOM nodes that `savedSelectionRef` points to. Solution: instead of saving a `Range` object (which becomes invalid after DOM changes), save the cursor **offset** (character position). Or simpler: don't re-render the contentEditable on blur — remove `dangerouslySetInnerHTML` and manage it imperatively. However the simplest fix: move the selection save to `mousedown` on the insert button (before focus leaves the editor), using `onMouseDown` on the button to capture the range before blur fires.
-
-## Changes Summary
-
-| File | Changes |
-|------|---------|
-| `src/lib/store.ts` | Fix `generateBiodataTableHtml` to use `display:inline-block;min-width:Xch` for aligned colons |
-| `src/pages/Pengaturan.tsx` | (1) Add icons to all 7 tab triggers with responsive hide/show text. (2) Change TabsList from `grid grid-cols-7` to responsive flex. (3) Fix insertion by capturing selection on button `onMouseDown` before blur fires |
-
+| File                           | Changes                                                                                |
+| ------------------------------ | -------------------------------------------------------------------------------------- |
+| `src/lib/store.ts`             | Add `BiodataField`, `customBiodata`, `selectedBiodata`, `extraFields`, update defaults |
+| `src/pages/Pengaturan.tsx`     | Add biodata checklist per template, custom biodata CRUD, formatted insert              |
+| `src/pages/TambahSurat.tsx`    | Dynamic form based on `selectedBiodata`, support custom fields                         |
+| `src/components/A4Preview.tsx` | Parse custom placeholders, formatted biodata table output                              |

@@ -213,12 +213,11 @@ export function generateBiodataTableHtml(selectedKeys: string[], allFields: Biod
   const selected = selectedKeys.map(key => allFields.find(f => f.key === key)).filter(Boolean) as BiodataField[];
   if (selected.length === 0) return '';
   
-  const maxLabelLen = Math.max(...selected.map(f => f.label.length));
+  const maxLen = Math.max(...selected.map(f => f.label.length)) + 1;
   
   let html = '';
   for (const field of selected) {
-    const padding = '\u00A0'.repeat(Math.max(0, maxLabelLen - field.label.length));
-    html += `<div>${field.label}${padding}\u00A0: ${field.placeholder}</div>`;
+    html += `<div><span style="display:inline-block;min-width:${maxLen}ch">${field.label}</span>: ${field.placeholder}</div>`;
   }
   return html;
 }
