@@ -1,22 +1,53 @@
-# Plan: Add timestamps to Surat info display
+# Plan: Logo Layout, Dashboard UI, Template Justify, Sidebar Updates
 
 ## Changes
 
-### 1. Add `updatedAt` field to Surat model (`src/lib/store.ts`)
+### 1. A4 Preview Logo — Match MS Word Layout (Images 1-3)
 
-- Add `updatedAt: string` to `Surat` interface
+From the screenshots: logo is positioned absolutely at `-12.9mm` horizontal from column, `-1.7mm` vertical from paragraph, size `25.47mm × 25.59mm`, "In front of text" wrapping.
 
-### 2. Set timestamps on create/edit (`src/pages/TambahSurat.tsx`)
+In `A4Preview.tsx`:
 
-- On create: set both `createdAt` and `updatedAt` to `new Date().toISOString()`
-- On edit: update `updatedAt` only
+- Change logo size from `70px` to `~25.5mm` (≈96px)
+- Position: `left: -12.9mm`, `top: -1.7mm` relative to the header div
+- Set `zIndex: 10` for "in front of text" behavior
 
-### 3. Update info line in PreviewSurat (`src/pages/PreviewSurat.tsx`)
+### 2. Template Isi — Justify text
 
-- Change line 77 from: `NISN: {surat.nisn} · Maret 2026`
-- To: `NISN: {surat.nisn} · No: {surat.nomorSurat} · {tanggal bulan tahun} | Dibuat: 04/03/2026 | Diedit: 04/03/2026`
-- Format dates with `toLocaleDateString('id-ID')`
+In `A4Preview.tsx`:
 
-### 4. Update info line in DaftarSurat (`src/pages/DaftarSurat.tsx`)
+- Add `textAlign: 'justify'` to the `<div>` that renders `parsedIsi`
 
-- Same pattern on line 92: append `| Dibuat: ... | Diedit: ...`
+### 3. Dashboard Layout — Match Image 4
+
+Current layout uses `grid-cols-3`. Image 4 shows a horizontal row of 5 sections:
+
+- [Masuk total | Keluar total] [Masuk bulan | Keluar bulan] [+Surat Masuk] [+Surat Keluar]
+
+In `Index.tsx`:
+
+- Change grid to `grid-cols-1 md:grid-cols-5` single row
+- Total card spans 2 cols, monthly card spans 1 col, each button spans 1 col
+- Remove `lg:row-span-2`, make everything single row height
+
+### 4. Sidebar Logo — Bigger
+
+In `AppSidebar.tsx`:
+
+- Increase from `w-28 h-28` to `w-36 h-36` (collapsed: `w-12 h-12`)
+- Increase "MINSA" text from `text-lg` to `text-xl`
+
+### 5. Add "© copyright AZSTRAL " credit above Pengaturan
+
+In `AppSidebar.tsx`:
+
+- Add small text "© copyright AZSTRAL" with copyright icon above the Pengaturan menu item in `SidebarFooter`
+
+## Files to Edit
+
+
+| File                            | Changes                                                |
+| ------------------------------- | ------------------------------------------------------ |
+| `src/components/A4Preview.tsx`  | Logo position/size per Word layout, justify isi text   |
+| `src/pages/Index.tsx`           | Horizontal single-row stats layout matching screenshot |
+| `src/components/AppSidebar.tsx` | Bigger logo, AZSTRAL credit above Pengaturan           |
