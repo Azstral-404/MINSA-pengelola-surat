@@ -5,6 +5,7 @@ import { useApp } from '@/contexts/AppContext';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import kemenagLogo from '@/assets/kemenag-logo.png';
 
 export function Layout() {
   const { data, updateData, setTheme } = useApp();
@@ -24,6 +25,7 @@ export function Layout() {
           <header className="h-14 flex items-center justify-between border-b border-border px-3 gap-2">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
+              <img src={kemenagLogo} alt="Kemenag" className="h-8 w-8 object-contain" />
               <div className="hidden sm:block">
                 <div className="font-bold text-sm text-foreground leading-tight">MIN 1 LANGSA</div>
                 <div className="text-[10px] text-muted-foreground leading-tight">Kementerian Agama Kota Langsa</div>

@@ -58,7 +58,7 @@ const Index = () => {
             </>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">MIN 1 Langsa — NSM: 111111730001 · NPSN: 10105537{activeTA ? ` — TA ${activeTA}` : ''}</p>
+        <p className="text-sm text-muted-foreground">MIN 1 Langsa — NSM: {data.settings.nsm} · NPSN: {data.settings.npsn}{activeTA ? ` — TA ${activeTA}` : ''}</p>
       </div>
 
       {/* Stats Grid */}

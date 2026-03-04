@@ -299,6 +299,13 @@ const Pengaturan = () => {
               <div><Label>Nama Sekolah</Label><Input value={h.school} onChange={e => updateHeader('school', e.target.value)} /></div>
               <div><Label>Alamat</Label><Input value={h.address} onChange={e => updateHeader('address', e.target.value)} /></div>
               <div><Label>Kontak</Label><Input value={h.contact} onChange={e => updateHeader('contact', e.target.value)} /></div>
+              <div className="border-t border-border pt-4 mt-2">
+                <h3 className="font-medium text-sm mb-3">Identitas Sekolah (Dashboard)</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><Label>NSM</Label><Input value={data.settings.nsm} onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, nsm: e.target.value } }))} placeholder="NSM" /></div>
+                  <div><Label>NPSN</Label><Input value={data.settings.npsn} onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, npsn: e.target.value } }))} placeholder="NPSN" /></div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
