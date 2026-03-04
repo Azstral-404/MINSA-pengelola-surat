@@ -146,7 +146,10 @@ const Index = () => {
                     <CardContent className="py-3 px-4 flex items-center justify-between">
                       <div>
                         <div className="font-medium text-sm text-foreground">{s.nama}</div>
-                        <div className="text-xs text-muted-foreground">{js?.label} · {BULAN_NAMES[s.bulan]} {s.tahun}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {js?.label} · {new Date(s.createdAt).getDate()} {BULAN_NAMES[s.bulan]} {s.tahun}
+                          {s.updatedAt && <span className="ml-1 text-muted-foreground/70">| last edit</span>}
+                        </div>
                       </div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isMasuk ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}>
                         {isMasuk ? 'MASUK' : 'KELUAR'}

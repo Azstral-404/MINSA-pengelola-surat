@@ -7,7 +7,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus } from 'lucide-react';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
 
 const Pengaturan = () => {
@@ -139,12 +141,13 @@ const Pengaturan = () => {
     <div className="space-y-6 max-w-4xl">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
       <Tabs defaultValue="kepala">
-        <TabsList className="grid grid-cols-5 w-full">
+        <TabsList className="grid grid-cols-6 w-full">
           <TabsTrigger value="kepala">Kepala</TabsTrigger>
           <TabsTrigger value="tahun">Tahun Ajaran</TabsTrigger>
           <TabsTrigger value="surat">Jenis Surat</TabsTrigger>
           <TabsTrigger value="header">Header Surat</TabsTrigger>
           <TabsTrigger value="tema">Tema</TabsTrigger>
+          <TabsTrigger value="penyimpanan">Data</TabsTrigger>
         </TabsList>
 
         {/* Kepala Madrasah */}
@@ -307,7 +310,20 @@ const Pengaturan = () => {
                   <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()}>
                     <Upload className="mr-1 h-4 w-4" />{h.logoUrl ? 'Ganti Logo' : 'Upload Logo'}
                   </Button>
-                  {h.logoUrl && <Button variant="ghost" size="sm" onClick={() => updateHeader('logoUrl', '')}>Hapus Logo</Button>}
+              {h.logoUrl && <Button variant="ghost" size="sm" onClick={() => updateHeader('logoUrl', '')}>Hapus Logo</Button>}
+                </div>
+                <div className="flex items-center gap-3 ml-2">
+                  <Label className="text-xs whitespace-nowrap">Ukuran: {h.logoSize || 22}mm</Label>
+                  <Slider
+                    value={[h.logoSize || 22]}
+                    onValueChange={([v]) => updateData(d => ({
+                      ...d, settings: { ...d.settings, suratHeader: { ...d.settings.suratHeader, logoSize: v } },
+                    }))}
+                    min={10}
+                    max={40}
+                    step={1}
+                    className="w-32"
+                  />
                 </div>
               </div>
               <div><Label>Baris 1</Label><Input value={h.line1} onChange={e => updateHeader('line1', e.target.value)} /></div>
@@ -358,6 +374,58 @@ const Pengaturan = () => {
                   </div>
                 </div>
                 <Switch checked={isDark} onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')} />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        {/* Penyimpanan / Data */}
+        <TabsContent value="penyimpanan">
+          <Card>
+            <CardHeader><CardTitle>Penyimpanan Data</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="p-4 rounded-lg border border-border bg-muted/50 space-y-2">
+                <div className="flex items-center gap-2">
+                  <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                  <Label className="text-sm font-medium">Lokasi Default (Desktop)</Label>
+                </div>
+                <p className="text-xs text-muted-foreground font-mono">C:\Users\{'{username}'}\AppData\Roaming\Minsa</p>
+                <p className="text-xs text-muted-foreground">Lokasi ini akan digunakan saat aplikasi dijalankan sebagai desktop app. Saat ini data tersimpan di localStorage browser.</p>
+              </div>
+
+              <div className="border-t border-border pt-4 space-y-3">
+                <h3 className="font-medium text-sm">Ekspor & Impor Data</h3>
+                <p className="text-xs text-muted-foreground">Simpan cadangan data atau pindahkan data ke perangkat lain.</p>
+                <div className="flex gap-2">
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const blob = new Blob([JSON.stringify(loadData(), null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = `minsa-backup-${new Date().toISOString().slice(0,10)}.json`;
+                    a.click(); URL.revokeObjectURL(url);
+                    toast.success('Data berhasil diekspor');
+                  }}>
+                    <Download className="mr-1 h-4 w-4" />Ekspor JSON
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const input = document.createElement('input');
+                    input.type = 'file'; input.accept = '.json';
+                    input.onchange = async (ev) => {
+                      const file = (ev.target as HTMLInputElement).files?.[0];
+                      if (!file) return;
+                      try {
+                        const text = await file.text();
+                        const parsed = JSON.parse(text);
+                        if (parsed.settings && parsed.surat) {
+                          saveData(parsed);
+                          window.location.reload();
+                        } else { toast.error('Format file tidak valid'); }
+                      } catch { toast.error('Gagal mengimpor data'); }
+                    };
+                    input.click();
+                  }}>
+                    <Upload className="mr-1 h-4 w-4" />Impor JSON
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
