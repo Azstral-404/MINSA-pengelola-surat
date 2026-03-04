@@ -322,14 +322,14 @@ const Pengaturan = () => {
     <div className="space-y-6 max-w-4xl">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
       <Tabs defaultValue="kepala">
-        <TabsList className="flex flex-wrap w-full h-auto gap-1">
-          <TabsTrigger value="kepala" className="flex items-center gap-1.5 flex-1 min-w-0"><UserRound className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Kepala</span></TabsTrigger>
-          <TabsTrigger value="tahun" className="flex items-center gap-1.5 flex-1 min-w-0"><CalendarDays className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Tahun Ajaran</span></TabsTrigger>
-          <TabsTrigger value="surat" className="flex items-center gap-1.5 flex-1 min-w-0"><FileText className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Jenis Surat</span></TabsTrigger>
-          <TabsTrigger value="biodata" className="flex items-center gap-1.5 flex-1 min-w-0"><Contact className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Biodata</span></TabsTrigger>
-          <TabsTrigger value="header" className="flex items-center gap-1.5 flex-1 min-w-0"><Building className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Header</span></TabsTrigger>
-          <TabsTrigger value="tema" className="flex items-center gap-1.5 flex-1 min-w-0"><Palette className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Tema</span></TabsTrigger>
-          <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 flex-1 min-w-0"><Database className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Data</span></TabsTrigger>
+        <TabsList className="flex w-full h-auto gap-1 overflow-x-auto scrollbar-none">
+          <TabsTrigger value="kepala" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><UserRound className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Kepala</span></TabsTrigger>
+          <TabsTrigger value="tahun" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><CalendarDays className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Tahun Ajaran</span></TabsTrigger>
+          <TabsTrigger value="surat" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><FileText className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Jenis Surat</span></TabsTrigger>
+          <TabsTrigger value="biodata" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><Contact className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Biodata</span></TabsTrigger>
+          <TabsTrigger value="header" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><Building className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Header</span></TabsTrigger>
+          <TabsTrigger value="tema" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><Palette className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Tema</span></TabsTrigger>
+          <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><Database className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Data</span></TabsTrigger>
         </TabsList>
 
         {/* Kepala Madrasah */}
@@ -617,7 +617,7 @@ const Pengaturan = () => {
             <CardContent className="space-y-6">
               <div>
                 <Label className="mb-2 block">Warna Tema</Label>
-                <div className="grid grid-cols-5 gap-3">
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
                   {COLOR_THEMES.map(ct => (
                     <button
                       key={ct.value}
