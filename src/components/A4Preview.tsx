@@ -28,7 +28,6 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
       .replace(/\{alamat\}/gi, surat.alamat)
       .replace(/\{tahun_ajaran\}/gi, surat.tahunAjaran);
 
-    // Replace custom field placeholders
     const extras = surat.extraFields || {};
     const customFields = data.settings.customBiodata || [];
     for (const field of customFields) {
@@ -40,7 +39,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
   };
 
   const parsedIsi = parseTemplate(jenisSurat.templateIsi);
-  const logoSrc = h.logoUrl || kemenagLogo;
+  const logoSrc = h.logoUrl || (data.settings.customKemenagLogo || kemenagLogo);
 
   return (
     <div className="flex justify-center">

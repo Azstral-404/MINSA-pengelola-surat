@@ -17,6 +17,9 @@ export function Layout() {
     updateData(d => ({ ...d, settings: { ...d.settings, activeTahunAjaran: val } }));
   };
 
+  const headerLogoSrc = data.settings.customKemenagLogo || kemenagLogo;
+  const schoolName = data.settings.schoolName || 'MIN 1 Langsa';
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -25,10 +28,10 @@ export function Layout() {
           <header className="h-14 flex items-center justify-between border-b border-border px-3 gap-2">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <img src={kemenagLogo} alt="Kemenag" className="h-8 w-8 object-contain" />
+              <img src={headerLogoSrc} alt="Kemenag" className="h-8 w-8 object-contain" />
               <div className="hidden sm:block">
-                <div className="font-bold text-sm text-foreground leading-tight">MIN 1 LANGSA</div>
-                <div className="text-[10px] text-muted-foreground leading-tight">Kementerian Agama Kota Langsa</div>
+                <div className="font-bold text-sm text-foreground leading-tight">{schoolName.toUpperCase()}</div>
+                <div className="text-[10px] text-muted-foreground leading-tight">Kementerian Agama Kota {schoolName.replace(/^(RA|MI|MIN|MIS|MTS|MTs|MTsN|MTSN|MTSS|MTsS|MA|MAN|MAS)\s+\d*\s*/i, '').trim() || 'Langsa'}</div>
               </div>
             </div>
             <div className="flex items-center gap-2">

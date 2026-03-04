@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { generateId, slugify, JenisSurat, COLOR_THEMES, ColorTheme, DEFAULT_BIODATA, BiodataField, getAllBiodataFields, generateBiodataTableHtml } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,12 +9,13 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, ListChecks, UserRound, CalendarDays, FileText, Contact, Building, Palette, Database } from 'lucide-react';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, ListChecks, UserRound, CalendarDays, FileText, Contact, Building, Palette, Database, User, LogOut } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useSidebar } from '@/components/ui/sidebar';
 
 
 const BiodataChecklistSection = ({
@@ -163,11 +165,17 @@ const BiodataChecklistSection = ({
 
 const Pengaturan = () => {
   const { data, updateData, setTheme, setColorTheme } = useApp();
+  const [searchParams] = useSearchParams();
+  const { state: sidebarState } = useSidebar();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const templateRef = useRef<HTMLDivElement>(null);
   const editTemplateRef = useRef<HTMLDivElement>(null);
+  const akunLogoRef = useRef<HTMLInputElement>(null);
+  const akunKemenagLogoRef = useRef<HTMLInputElement>(null);
   const isDark = data.settings.theme === 'dark';
+
+  const defaultTab = searchParams.get('tab') || 'kepala';
 
   const [nipInput, setNipInput] = useState('');
   const [namaInput, setNamaInput] = useState('');
@@ -185,8 +193,8 @@ const Pengaturan = () => {
   const [newCustomLabel, setNewCustomLabel] = useState('');
   const [newCustomKey, setNewCustomKey] = useState('');
 
-  // Delete confirmation state
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'kepala' | 'tahun' | 'jenis' | 'biodata'; id: string; label: string } | null>(null);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const h = data.settings.suratHeader;
   const updateHeader = (field: string, value: string) => {
@@ -200,6 +208,18 @@ const Pengaturan = () => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => updateHeader('logoUrl', reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleAkunLogoUpload = (e: React.ChangeEvent<HTMLInputElement>, field: 'customLogo' | 'customKemenagLogo') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      updateData(d => ({ ...d, settings: { ...d.settings, [field]: reader.result as string } }));
+      toast.success('Logo berhasil diperbarui');
+    };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
@@ -315,7 +335,6 @@ const Pengaturan = () => {
     toast.success('Dihapus');
   };
 
-  // Confirm delete handler
   const handleConfirmDelete = () => {
     if (!deleteTarget) return;
     switch (deleteTarget.type) {
@@ -338,18 +357,24 @@ const Pengaturan = () => {
     return `Apakah Anda yakin ingin menghapus ${labels[deleteTarget.type]} "${deleteTarget.label}"? Tindakan ini tidak dapat dibatalkan.`;
   };
 
+  const handleLogout = () => {
+    localStorage.clear();
+    window.location.reload();
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
-      <Tabs defaultValue="kepala">
-        <TabsList className="flex w-full h-auto gap-1 overflow-x-auto scrollbar-none bg-muted p-1 rounded-lg">
-          <TabsTrigger value="kepala" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><UserRound className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Kepala</span></TabsTrigger>
-          <TabsTrigger value="tahun" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><CalendarDays className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Tahun Ajaran</span></TabsTrigger>
-          <TabsTrigger value="surat" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><FileText className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Jenis Surat</span></TabsTrigger>
-          <TabsTrigger value="biodata" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><Contact className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Biodata</span></TabsTrigger>
-          <TabsTrigger value="header" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><Building className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Header</span></TabsTrigger>
-          <TabsTrigger value="tema" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><Palette className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Tema</span></TabsTrigger>
-          <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><Database className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Data</span></TabsTrigger>
+      <Tabs defaultValue={defaultTab} key={sidebarState}>
+        <TabsList className="flex flex-wrap w-full h-auto gap-1 bg-muted p-1 rounded-lg">
+          <TabsTrigger value="kepala" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><UserRound className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Kepala</span></TabsTrigger>
+          <TabsTrigger value="tahun" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><CalendarDays className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Tahun Ajaran</span></TabsTrigger>
+          <TabsTrigger value="surat" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><FileText className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Jenis Surat</span></TabsTrigger>
+          <TabsTrigger value="biodata" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Contact className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Biodata</span></TabsTrigger>
+          <TabsTrigger value="header" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Building className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Header</span></TabsTrigger>
+          <TabsTrigger value="tema" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Palette className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Tema</span></TabsTrigger>
+          <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Database className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Data</span></TabsTrigger>
+          <TabsTrigger value="akun" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><User className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Akun</span></TabsTrigger>
         </TabsList>
 
         {/* Kepala Madrasah */}
@@ -447,7 +472,6 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
-                    
                   </div>
                   <BiodataChecklistSection
                     selectedBiodata={newSelectedBiodata}
@@ -480,7 +504,6 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
-                    
                     <Button variant="ghost" size="sm" onClick={() => setEditingJenis(null)}>Batal</Button>
                   </div>
                   <BiodataChecklistSection
@@ -542,7 +565,6 @@ const Pengaturan = () => {
               </div>
               <Button onClick={addCustomBiodata} size="sm"><Plus className="mr-1 h-4 w-4" />Tambah Biodata</Button>
 
-              {/* Default biodata list */}
               <div className="border-t border-border pt-4 mt-4">
                 <h3 className="font-medium text-sm mb-2">Biodata Default</h3>
                 <div className="space-y-1">
@@ -555,7 +577,6 @@ const Pengaturan = () => {
                 </div>
               </div>
 
-              {/* Custom biodata list */}
               {(data.settings.customBiodata || []).length > 0 && (
                 <div className="border-t border-border pt-4 mt-4">
                   <h3 className="font-medium text-sm mb-2">Biodata Kustom</h3>
@@ -617,13 +638,6 @@ const Pengaturan = () => {
               <div><Label>Nama Sekolah</Label><Input value={h.school} onChange={e => updateHeader('school', e.target.value)} /></div>
               <div><Label>Alamat</Label><Input value={h.address} onChange={e => updateHeader('address', e.target.value)} /></div>
               <div><Label>Kontak</Label><Input value={h.contact} onChange={e => updateHeader('contact', e.target.value)} /></div>
-              <div className="border-t border-border pt-4 mt-2">
-                <h3 className="font-medium text-sm mb-3">Identitas Sekolah (Dashboard)</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><Label>NSM</Label><Input value={data.settings.nsm} onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, nsm: e.target.value } }))} placeholder="NSM" /></div>
-                  <div><Label>NPSN</Label><Input value={data.settings.npsn} onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, npsn: e.target.value } }))} placeholder="NPSN" /></div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -714,6 +728,105 @@ const Pengaturan = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Akun Tab */}
+        <TabsContent value="akun">
+          <Card>
+            <CardHeader><CardTitle>Akun & Identitas</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <input type="file" accept="image/*" ref={akunLogoRef} className="hidden" onChange={(e) => handleAkunLogoUpload(e, 'customLogo')} />
+              <input type="file" accept="image/*" ref={akunKemenagLogoRef} className="hidden" onChange={(e) => handleAkunLogoUpload(e, 'customKemenagLogo')} />
+
+              {/* App Name */}
+              <div>
+                <Label>Nama Aplikasi (Sidebar)</Label>
+                <Input
+                  value={data.settings.appName}
+                  onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, appName: e.target.value } }))}
+                  placeholder="MINSA"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Ditampilkan di sidebar sebagai judul.</p>
+              </div>
+
+              {/* School Name */}
+              <div>
+                <Label>Nama Sekolah</Label>
+                <Input
+                  value={data.settings.schoolName}
+                  onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, schoolName: e.target.value } }))}
+                  placeholder="MIN 1 Langsa"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Ditampilkan di header dan dashboard.</p>
+              </div>
+
+              {/* Logos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <Label className="font-medium">Logo Sidebar (MINSA)</Label>
+                  <div className="flex items-center gap-3">
+                    {data.settings.customLogo ? (
+                      <img src={data.settings.customLogo} alt="Logo" className="w-14 h-14 object-contain border rounded" />
+                    ) : (
+                      <div className="w-14 h-14 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                        <ImagePlus className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <Button variant="outline" size="sm" onClick={() => akunLogoRef.current?.click()}>
+                        <Upload className="mr-1 h-4 w-4" />{data.settings.customLogo ? 'Ganti' : 'Upload'}
+                      </Button>
+                      {data.settings.customLogo && (
+                        <Button variant="ghost" size="sm" onClick={() => updateData(d => ({ ...d, settings: { ...d.settings, customLogo: '' } }))}>
+                          Hapus
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <Label className="font-medium">Logo Kementerian Agama</Label>
+                  <div className="flex items-center gap-3">
+                    {data.settings.customKemenagLogo ? (
+                      <img src={data.settings.customKemenagLogo} alt="Kemenag" className="w-14 h-14 object-contain border rounded" />
+                    ) : (
+                      <div className="w-14 h-14 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                        <ImagePlus className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <Button variant="outline" size="sm" onClick={() => akunKemenagLogoRef.current?.click()}>
+                        <Upload className="mr-1 h-4 w-4" />{data.settings.customKemenagLogo ? 'Ganti' : 'Upload'}
+                      </Button>
+                      {data.settings.customKemenagLogo && (
+                        <Button variant="ghost" size="sm" onClick={() => updateData(d => ({ ...d, settings: { ...d.settings, customKemenagLogo: '' } }))}>
+                          Hapus
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* NSM / NPSN */}
+              <div className="border-t border-border pt-4">
+                <h3 className="font-medium text-sm mb-3">Identitas Sekolah</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><Label>NSM</Label><Input value={data.settings.nsm} onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, nsm: e.target.value } }))} placeholder="NSM" /></div>
+                  <div><Label>NPSN</Label><Input value={data.settings.npsn} onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, npsn: e.target.value } }))} placeholder="NPSN" /></div>
+                </div>
+              </div>
+
+              {/* Logout */}
+              <div className="border-t border-border pt-4">
+                <Button variant="destructive" onClick={() => setShowLogoutConfirm(true)}>
+                  <LogOut className="mr-2 h-4 w-4" /> Logout (Reset Data)
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">Menghapus semua data lokal dan mengembalikan ke pengaturan awal.</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* Shared delete confirmation dialog */}
@@ -722,6 +835,16 @@ const Pengaturan = () => {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         description={getDeleteDescription()}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* Logout confirmation */}
+      <ConfirmDialog
+        open={showLogoutConfirm}
+        onOpenChange={setShowLogoutConfirm}
+        title="Konfirmasi Logout"
+        description="Apakah Anda yakin ingin logout? Semua data lokal akan dihapus dan tidak dapat dikembalikan."
+        confirmLabel="Logout"
+        onConfirm={handleLogout}
       />
     </div>
   );

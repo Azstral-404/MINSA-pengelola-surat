@@ -24,7 +24,7 @@ const PreviewSurat = () => {
     if (!action || !surat) return;
     const timer = setTimeout(() => {
       if (action === 'print') handlePrint();
-      if (action === 'docx') handleExportDocx();
+      if (action === 'pdf') handleExportPdf();
     }, 500);
     return () => clearTimeout(timer);
   }, [searchParams, surat]);
@@ -50,18 +50,17 @@ const PreviewSurat = () => {
     setTimeout(() => { w.print(); w.close(); }, 300);
   };
 
-  const handleExportDocx = () => {
+  const handleExportPdf = () => {
+    // Use the same print approach - browser's Save as PDF gives exact preview
     const el = document.getElementById('a4-print-area');
     if (!el) return;
-    const html = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>${surat.nama}</title></head><body>${el.innerHTML}</body></html>`;
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${surat.nama.replace(/\s+/g, '_')}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('DOCX berhasil diexport');
+    const w = window.open('', '_blank');
+    if (!w) return;
+    w.document.write(`<!DOCTYPE html><html><head><title>${surat.nama} - PDF</title><style>@page{size:A4;margin:0}body{margin:0;font-family:'Times New Roman',serif;font-size:12pt}img{max-width:70px;max-height:70px}</style></head><body>${el.innerHTML}</body></html>`);
+    w.document.close();
+    w.focus();
+    setTimeout(() => { w.print(); }, 300);
+    toast.info('Pilih "Save as PDF" pada dialog print untuk menyimpan sebagai PDF');
   };
 
   return (
@@ -92,10 +91,10 @@ const PreviewSurat = () => {
                   <Pencil className="mr-2 h-4 w-4" /> Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handlePrint}>
-                  <Printer className="mr-2 h-4 w-4" /> Print / PDF
+                  <Printer className="mr-2 h-4 w-4" /> Print
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleExportDocx}>
-                  <FileDown className="mr-2 h-4 w-4" /> Export DOCX
+                <DropdownMenuItem onClick={handleExportPdf}>
+                  <FileDown className="mr-2 h-4 w-4" /> Export PDF
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
