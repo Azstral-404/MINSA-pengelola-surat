@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, UserPlus, ListChecks } from 'lucide-react';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, ListChecks } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
