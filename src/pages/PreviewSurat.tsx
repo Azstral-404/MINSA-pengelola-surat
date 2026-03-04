@@ -74,7 +74,10 @@ const PreviewSurat = () => {
         <CardContent className="py-3 px-4 flex items-center justify-between">
           <div>
             <div className="font-medium text-sm text-foreground">{surat.nama}</div>
-            <div className="text-xs text-muted-foreground">NISN: {surat.nisn || '-'} · {BULAN_NAMES[surat.bulan]} {surat.tahun}</div>
+            <div className="text-xs text-muted-foreground">
+              NISN: {surat.nisn || '-'} · No: {surat.nomorSurat || '-'} · {BULAN_NAMES[surat.bulan]} {surat.tahun}
+              {surat.updatedAt && ` | Diedit: ${new Date(surat.updatedAt).toLocaleDateString('id-ID')}`}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isMasuk ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}>

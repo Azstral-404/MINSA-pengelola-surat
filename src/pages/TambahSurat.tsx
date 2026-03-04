@@ -72,6 +72,7 @@ const TambahSurat = () => {
           noInduk: form.noInduk.trim(), nisn: form.nisn.trim(),
           namaOrangTua: form.namaOrangTua.trim(), alamat: form.alamat.trim(),
           nomorSurat: form.nomorSurat.trim(), tahunAjaran,
+          updatedAt: now.toISOString(),
         } : s),
       }));
       toast.success('Surat diperbarui');
@@ -85,7 +86,7 @@ const TambahSurat = () => {
         namaOrangTua: form.namaOrangTua.trim(), alamat: form.alamat.trim(),
         tahunAjaran, bulan: now.getMonth() + 1, tahun: now.getFullYear(),
         kepalaMadrasahId: form.kepalaMadrasahId, arah: form.arah,
-        createdAt: now.toISOString(),
+        createdAt: now.toISOString(), updatedAt: now.toISOString(),
       };
       updateData(d => ({ ...d, surat: [...d.surat, surat] }));
       toast.success('Surat berhasil ditambahkan');

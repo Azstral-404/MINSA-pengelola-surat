@@ -38,7 +38,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         className="bg-white text-black shadow-lg mx-auto"
         style={{
           width: '210mm', minHeight: '297mm',
-          paddingTop: '5mm', paddingBottom: '25.4mm',
+          paddingTop: '3.2mm', paddingBottom: '25.4mm',
           paddingLeft: '25.4mm', paddingRight: '25.4mm',
           fontFamily: "'Times New Roman', serif", fontSize: '12pt',
           lineHeight: '1.0', boxSizing: 'border-box',
@@ -88,7 +88,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
             <div style={{ marginTop: '60px', fontWeight: 'bold', textDecoration: 'underline' }}>
               {kepala.nama}
             </div>
-            <div>NIP. {kepala.nip}</div>
+            {kepala.nip && <div>NIP. {kepala.nip}</div>}
           </div>
         )}
       </div>

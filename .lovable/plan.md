@@ -1,59 +1,22 @@
-# Plan: Page Setup Margins, Timestamps, Bold Nama, Optional NIP, Dashboard Grid
+# Plan: Add timestamps to Surat info display
 
 ## Changes
 
-### 1. A4 Margins — Match MS Word Page Setup (Images 1-3)
+### 1. Add `updatedAt` field to Surat model (`src/lib/store.ts`)
 
-From screenshots: Top: **3.2mm**, Bottom: **25.4mm**, Left: **25.4mm**, Right: **25.4mm**, Header from edge: **12.7mm**, Footer from edge: **12.7mm**.
+- Add `updatedAt: string` to `Surat` interface
 
-In `A4Preview.tsx`: change `paddingTop` from `5mm` to `3.2mm`.
+### 2. Set timestamps on create/edit (`src/pages/TambahSurat.tsx`)
 
-### 2. Bold nama kepala madrasah + Optional NIP
+- On create: set both `createdAt` and `updatedAt` to `new Date().toISOString()`
+- On edit: update `updatedAt` only
 
-In `A4Preview.tsx` signature block:
+### 3. Update info line in PreviewSurat (`src/pages/PreviewSurat.tsx`)
 
-- Nama already has `fontWeight: 'bold'` — keep as is
-- NIP line: only render if `kepala.nip` is non-empty. Change from always showing `NIP. {kepala.nip}` to conditional render.
+- Change line 77 from: `NISN: {surat.nisn} · Maret 2026`
+- To: `NISN: {surat.nisn} · No: {surat.nomorSurat} · {tanggal bulan tahun} | Dibuat: 04/03/2026 | Diedit: 04/03/2026`
+- Format dates with `toLocaleDateString('id-ID')`
 
-### 3. Add `updatedAt` to Surat model (`src/lib/store.ts`)
+### 4. Update info line in DaftarSurat (`src/pages/DaftarSurat.tsx`)
 
-- Add `updatedAt?: string` to `Surat` interface
-
-### 4. Set timestamps on create/edit (`src/pages/TambahSurat.tsx`)
-
-- On create: set `createdAt` and `updatedAt` to `new Date().toISOString()`
-- On edit: update only `updatedAt`
-
-### 5. Update info lines with timestamps
-
-**PreviewSurat** (line 77): Change to:  
-`NISN: {nisn} · No: {nomorSurat} · {tanggal bulan tahun} | Diedit: dd/mm/yyyy`
-
-**DaftarSurat** (line 92): Same pattern — append `| Diedit: ...`
-
-Format using `toLocaleDateString('id-ID')` or manual dd/mm/yyyy.
-
-### 6. Dashboard grid — Match Image 4
-
-Image 4 shows a 2-row right section:
-
-- Row 1: [Masuk Total | Keluar Total] spanning left, then [Maret Masuk | Maret Keluar] on right top
-- Row 2: (right side) [+Surat Masuk] [+Surat Keluar] buttons below the monthly stats
-
-Current layout is `grid-cols-5` single row. Change to:
-
-- `grid-cols-1 md:grid-cols-3` with the total card spanning 2 cols
-- Right column: a stacked card with monthly stats on top and two buttons below
-- This matches the screenshot layout more closely
-
-## Files to Edit
-
-
-| File                           | Changes                           |
-| ------------------------------ | --------------------------------- |
-| `src/lib/store.ts`             | Add `updatedAt?: string` to Surat |
-| `src/components/A4Preview.tsx` | Top margin 3.2mm, conditional NIP |
-| `src/pages/TambahSurat.tsx`    | Set `updatedAt` on create/edit    |
-| `src/pages/PreviewSurat.tsx`   | Add timestamps to info line       |
-| `src/pages/DaftarSurat.tsx`    | Add timestamps to info line       |
-| `src/pages/Index.tsx`          | Restructure grid to match image 4 |
+- Same pattern on line 92: append `| Dibuat: ... | Diedit: ...`

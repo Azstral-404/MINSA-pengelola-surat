@@ -90,6 +90,7 @@ const DaftarSurat = () => {
                     <div className="font-medium text-sm text-foreground">{s.nama}</div>
                     <div className="text-xs text-muted-foreground">
                       NISN: {s.nisn || '-'} · No: {s.nomorSurat || '-'} · {BULAN_NAMES[s.bulan]} {s.tahun}
+                      {s.updatedAt && ` | Diedit: ${new Date(s.updatedAt).toLocaleDateString('id-ID')}`}
                     </div>
                   </div>
                   <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
