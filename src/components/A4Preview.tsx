@@ -73,8 +73,8 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         </div>
 
         {/* Nomor */}
-        <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '12pt' }}>
-          {formatNomorSurat(surat.nomorSurat, surat.bulan, surat.tahun)}
+        <div style={{ textAlign: 'center', marginBottom: '20px', fontSize: '12pt', fontWeight: 'bold' }}>
+          {formatNomorSurat(surat.nomorSurat, surat.bulan, surat.tahun, data.settings.nomorSuratFormat)}
         </div>
 
         {/* Isi */}

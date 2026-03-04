@@ -89,7 +89,7 @@ const DaftarSurat = () => {
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-foreground">{s.nama}</div>
                     <div className="text-xs text-muted-foreground">
-                      NISN: {s.nisn || '-'} · No: {s.nomorSurat || '-'} · {BULAN_NAMES[s.bulan]} {s.tahun}
+                      NISN: {s.nisn || '-'} · No: {s.nomorSurat || '-'} · {new Date(s.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
                       {s.updatedAt && ` | Diedit: ${new Date(s.updatedAt).toLocaleDateString('id-ID')}`}
                     </div>
                   </div>

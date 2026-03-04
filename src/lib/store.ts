@@ -157,7 +157,12 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; color: string }[]
   { value: 'royal', label: 'Royal', color: '#7c3aed' },
 ];
 
-export function formatNomorSurat(nomorSurat: string, bulan: number, tahun: number): string {
+export function formatNomorSurat(nomorSurat: string, bulan: number, tahun: number, format?: string): string {
   const bulanStr = String(bulan).padStart(2, '0');
-  return `NOMOR : B. ${nomorSurat || '......'} /Mi.01.21/1/PP.01.1/${bulanStr}/${tahun}`;
+  const template = format || 'B. {nomor} /Mi.01.21/1/PP.01.1/{bulan}/{tahun}';
+  const result = template
+    .replace(/\{nomor\}/gi, nomorSurat || '......')
+    .replace(/\{bulan\}/gi, bulanStr)
+    .replace(/\{tahun\}/gi, String(tahun));
+  return `NOMOR : ${result}`;
 }
