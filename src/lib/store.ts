@@ -157,6 +157,15 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; color: string }[]
   { value: 'royal', label: 'Royal', color: '#7c3aed' },
 ];
 
+export function isInTahunAjaran(surat: Pick<Surat, 'bulan' | 'tahun'>, taLabel: string): boolean {
+  const parts = taLabel.split('/');
+  if (parts.length !== 2) return false;
+  const startYear = parseInt(parts[0], 10);
+  const endYear = parseInt(parts[1], 10);
+  if (isNaN(startYear) || isNaN(endYear)) return false;
+  return (surat.tahun === startYear && surat.bulan >= 7) || (surat.tahun === endYear && surat.bulan <= 6);
+}
+
 export function formatNomorSurat(nomorSurat: string, bulan: number, tahun: number, format?: string): string {
   const bulanStr = String(bulan).padStart(2, '0');
   const template = format || 'B. {nomor} /Mi.01.21/1/PP.01.1/{bulan}/{tahun}';

@@ -22,12 +22,16 @@ const Index = () => {
     setEditingTitle(false);
   };
 
-  const masukTotal = data.surat.filter(s => s.arah === 'masuk').length;
-  const keluarTotal = data.surat.filter(s => s.arah === 'keluar').length;
-  const masukBulan = data.surat.filter(s => s.arah === 'masuk' && s.bulan === currentMonth && s.tahun === currentYear).length;
-  const keluarBulan = data.surat.filter(s => s.arah === 'keluar' && s.bulan === currentMonth && s.tahun === currentYear).length;
+  const filteredSurat = activeTA
+    ? data.surat.filter(s => isInTahunAjaran(s, activeTA))
+    : data.surat;
 
-  const recentSurat = [...data.surat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
+  const masukTotal = filteredSurat.filter(s => s.arah === 'masuk').length;
+  const keluarTotal = filteredSurat.filter(s => s.arah === 'keluar').length;
+  const masukBulan = filteredSurat.filter(s => s.arah === 'masuk' && s.bulan === currentMonth && s.tahun === currentYear).length;
+  const keluarBulan = filteredSurat.filter(s => s.arah === 'keluar' && s.bulan === currentMonth && s.tahun === currentYear).length;
+
+  const recentSurat = [...filteredSurat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
   const { jenisSurat } = data.settings;
   const activeTA = data.settings.activeTahunAjaran;
 
