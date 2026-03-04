@@ -93,6 +93,7 @@ const DEFAULT_DATA: AppData = {
     suratHeader: DEFAULT_HEADER,
     nsm: '111111730001',
     npsn: '10105537',
+    nomorSuratFormat: 'B. {nomor} /Mi.01.21/1/PP.01.1/{bulan}/{tahun}',
   },
   surat: [],
 };
