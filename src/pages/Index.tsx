@@ -62,8 +62,8 @@ const Index = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="lg:row-span-2 overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <Card className="md:col-span-2 overflow-hidden">
           <CardContent className="p-0 h-full">
             <div className="grid grid-cols-2 h-full">
               <div className="bg-gradient-to-br from-emerald-500/20 to-emerald-600/10 p-5 flex flex-col justify-center items-center border-r border-border">
@@ -83,14 +83,14 @@ const Index = () => {
         </Card>
 
         <Card className="overflow-hidden">
-          <CardContent className="p-0">
-            <div className="grid grid-cols-2">
-              <div className="bg-gradient-to-br from-emerald-500/15 to-transparent p-4 flex flex-col items-center border-r border-border">
+          <CardContent className="p-0 h-full">
+            <div className="grid grid-cols-2 h-full">
+              <div className="bg-gradient-to-br from-emerald-500/15 to-transparent p-4 flex flex-col justify-center items-center border-r border-border">
                 <span className="text-xs text-muted-foreground uppercase">{BULAN_NAMES[currentMonth]}</span>
                 <span className="text-2xl font-bold text-foreground">{masukBulan}</span>
                 <span className="text-[10px] text-muted-foreground">MASUK</span>
               </div>
-              <div className="bg-gradient-to-br from-rose-500/15 to-transparent p-4 flex flex-col items-center">
+              <div className="bg-gradient-to-br from-rose-500/15 to-transparent p-4 flex flex-col justify-center items-center">
                 <span className="text-xs text-muted-foreground uppercase">{BULAN_NAMES[currentMonth]}</span>
                 <span className="text-2xl font-bold text-foreground">{keluarBulan}</span>
                 <span className="text-[10px] text-muted-foreground">KELUAR</span>
@@ -99,22 +99,20 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Button
-            className="h-full min-h-[64px] bg-emerald-600 hover:bg-emerald-700 text-white flex flex-col gap-1"
-            onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=masuk`); }}
-          >
-            <Plus className="h-5 w-5" />
-            <span className="text-xs">Surat Masuk</span>
-          </Button>
-          <Button
-            className="h-full min-h-[64px] bg-rose-600 hover:bg-rose-700 text-white flex flex-col gap-1"
-            onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=keluar`); }}
-          >
-            <Plus className="h-5 w-5" />
-            <span className="text-xs">Surat Keluar</span>
-          </Button>
-        </div>
+        <Button
+          className="h-full min-h-[80px] bg-emerald-600 hover:bg-emerald-700 text-white flex flex-col gap-1"
+          onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=masuk`); }}
+        >
+          <Plus className="h-5 w-5" />
+          <span className="text-xs">Surat Masuk</span>
+        </Button>
+        <Button
+          className="h-full min-h-[80px] bg-rose-600 hover:bg-rose-700 text-white flex flex-col gap-1"
+          onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=keluar`); }}
+        >
+          <Plus className="h-5 w-5" />
+          <span className="text-xs">Surat Keluar</span>
+        </Button>
       </div>
 
       {/* Riwayat Terakhir */}

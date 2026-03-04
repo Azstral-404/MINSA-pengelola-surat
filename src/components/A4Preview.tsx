@@ -49,7 +49,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           <img
             src={logoSrc}
             alt="Logo"
-            style={{ position: 'absolute', left: 0, top: 0, width: '70px', height: '70px', objectFit: 'contain' }}
+            style={{ position: 'absolute', left: '-12.9mm', top: '-1.7mm', width: '25.47mm', height: '25.59mm', objectFit: 'contain', zIndex: 10 }}
           />
           <div style={{ fontSize: '16pt', fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>
             {h.line1}
@@ -78,7 +78,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         </div>
 
         {/* Isi */}
-        <div dangerouslySetInnerHTML={{ __html: parsedIsi }} />
+        <div style={{ textAlign: 'justify' }} dangerouslySetInnerHTML={{ __html: parsedIsi }} />
 
         {/* TTD - starts at 100mm from left margin */}
         {kepala && (
