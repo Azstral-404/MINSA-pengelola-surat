@@ -64,6 +64,7 @@ export interface AppSettings {
   suratHeader: SuratHeader;
   nsm: string;
   npsn: string;
+  nomorSuratFormat: string;
 }
 
 export interface AppData {
