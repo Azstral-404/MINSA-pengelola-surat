@@ -1,5 +1,5 @@
 import { useApp } from '@/contexts/AppContext';
-import { Surat, JenisSurat, formatNomorSurat } from '@/lib/store';
+import { Surat, JenisSurat, formatNomorSurat, KELAS_OPTIONS } from '@/lib/store';
 import kemenagLogo from '@/assets/kemenag-logo.png';
 
 interface A4PreviewProps {
@@ -18,7 +18,10 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
       .replace(/\{tempat_lahir\}/gi, surat.tempatLahir)
       .replace(/\{tanggal_lahir\}/gi, surat.tanggalLahir)
       .replace(/\{jenis_kelamin\}/gi, surat.jenisKelamin)
-      .replace(/\{kelas\}/gi, surat.kelas)
+      .replace(/\{kelas\}/gi, () => {
+        const opt = KELAS_OPTIONS.find(o => o.value === surat.kelas);
+        return opt ? opt.label : surat.kelas;
+      })
       .replace(/\{no_induk\}/gi, surat.noInduk)
       .replace(/\{nisn\}/gi, surat.nisn)
       .replace(/\{nama_orang_tua\}/gi, surat.namaOrangTua)
@@ -49,7 +52,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           <img
             src={logoSrc}
             alt="Logo"
-            style={{ position: 'absolute', left: '-12.9mm', top: '0', width: '22mm', height: '22mm', objectFit: 'contain', zIndex: 10 }}
+            style={{ position: 'absolute', left: '-10mm', bottom: '5px', width: '22mm', height: '22mm', objectFit: 'contain', zIndex: 10 }}
           />
           <div style={{ fontSize: '16pt', fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>
             {h.line1}
