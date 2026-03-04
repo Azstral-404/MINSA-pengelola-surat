@@ -47,7 +47,7 @@ const Pengaturan = () => {
 
   // Kepala Madrasah
   const addKepala = () => {
-    if (!nipInput.trim() || !namaInput.trim()) { toast.error('NIP dan Nama wajib diisi'); return; }
+    if (!namaInput.trim()) { toast.error('Nama wajib diisi'); return; }
     updateData(d => ({
       ...d, settings: { ...d.settings, kepalaMadrasah: [...d.settings.kepalaMadrasah, { id: generateId(), nip: nipInput.trim(), nama: namaInput.trim() }] },
     }));
