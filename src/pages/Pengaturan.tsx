@@ -67,6 +67,7 @@ const Pengaturan = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const templateRef = useRef<HTMLDivElement>(null);
+  const editTemplateRef = useRef<HTMLDivElement>(null);
   const isDark = data.settings.theme === 'dark';
 
   const [nipInput, setNipInput] = useState('');
@@ -295,6 +296,7 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
+                    <BiodataInsertButton editorRef={templateRef} />
                   </div>
                 </div>
               )}
@@ -308,6 +310,7 @@ const Pengaturan = () => {
                     <Label>Template Isi Surat</Label>
                     <p className="text-xs text-muted-foreground mb-2">Anda bisa copy-paste langsung dari MS Word.</p>
                     <div
+                      ref={editTemplateRef}
                       contentEditable
                       className="min-h-[200px] border border-input rounded-md p-3 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring overflow-auto prose prose-sm max-w-none"
                       onPaste={(e) => handleTemplatePaste(e, true)}
@@ -320,6 +323,7 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
+                    <BiodataInsertButton editorRef={editTemplateRef} />
                     <Button variant="ghost" size="sm" onClick={() => setEditingJenis(null)}>Batal</Button>
                   </div>
                 </div>
