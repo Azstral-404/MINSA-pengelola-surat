@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Plus, MoreVertical, Eye, Pencil, Trash2, Printer, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const DaftarSurat = () => {
   const { jenisSlug } = useParams<{ jenisSlug: string }>();
@@ -15,6 +16,7 @@ const DaftarSurat = () => {
   const navigate = useNavigate();
   const [filter, setFilter] = useState<'semua' | 'masuk' | 'keluar'>('semua');
   const [bulanFilter, setBulanFilter] = useState<string>('semua');
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const jenisSurat = data.settings.jenisSurat.find(j => j.slug === jenisSlug);
   if (!jenisSurat) return <div className="text-center py-10 text-muted-foreground">Jenis surat tidak ditemukan.</div>;
@@ -34,6 +36,8 @@ const DaftarSurat = () => {
   const exportPdf = (suratId: string) => {
     navigate(`/surat/${jenisSlug}/${suratId}/preview?action=print`);
   };
+
+  const deleteTargetSurat = suratList.find(s => s.id === deleteId);
 
   return (
     <div className="space-y-4">
@@ -110,7 +114,7 @@ const DaftarSurat = () => {
                         <DropdownMenuItem onClick={() => exportPdf(s.id)}><Printer className="mr-2 h-4 w-4" />Export PDF</DropdownMenuItem>
                         <DropdownMenuItem onClick={() => navigate(`/surat/${jenisSlug}/${s.id}/preview?action=docx`)}><FileDown className="mr-2 h-4 w-4" />Export DOCX</DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive" onClick={() => deleteSurat(s.id)}><Trash2 className="mr-2 h-4 w-4" />Hapus</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive" onClick={() => setDeleteId(s.id)}><Trash2 className="mr-2 h-4 w-4" />Hapus</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
@@ -120,6 +124,13 @@ const DaftarSurat = () => {
           })}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteId}
+        onOpenChange={(open) => !open && setDeleteId(null)}
+        description={`Apakah Anda yakin ingin menghapus surat "${deleteTargetSurat?.nama || ''}"? Tindakan ini tidak dapat dibatalkan.`}
+        onConfirm={() => { if (deleteId) { deleteSurat(deleteId); setDeleteId(null); } }}
+      />
     </div>
   );
 };

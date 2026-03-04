@@ -13,6 +13,7 @@ import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 
 const BiodataChecklistSection = ({
@@ -38,7 +39,6 @@ const BiodataChecklistSection = ({
 
   const savedRangeRef = useRef<{ startOffset: number; endOffset: number; startPath: number[]; endPath: number[] } | null>(null);
 
-  // Helper to get node path relative to container
   const getNodePath = (node: Node, container: Node): number[] => {
     const path: number[] = [];
     let current = node;
@@ -77,7 +77,6 @@ const BiodataChecklistSection = ({
     }
   };
 
-  // Save selection on interaction
   React.useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
@@ -90,7 +89,6 @@ const BiodataChecklistSection = ({
   }, [editorRef]);
 
   const handleInsertMouseDown = (e: React.MouseEvent) => {
-    // Capture selection before blur fires
     captureSelection();
   };
 
@@ -104,7 +102,6 @@ const BiodataChecklistSection = ({
     const sel = window.getSelection();
     if (!sel) return;
 
-    // Try to restore saved position
     const saved = savedRangeRef.current;
     if (saved) {
       const startNode = getNodeFromPath(saved.startPath, el);
@@ -117,7 +114,6 @@ const BiodataChecklistSection = ({
           sel.removeAllRanges();
           sel.addRange(range);
         } catch {
-          // fallback to end
           const range = document.createRange();
           range.selectNodeContents(el);
           range.collapse(false);
@@ -126,7 +122,6 @@ const BiodataChecklistSection = ({
         }
       }
     } else {
-      // Move cursor to end
       const range = document.createRange();
       range.selectNodeContents(el);
       range.collapse(false);
@@ -187,9 +182,11 @@ const Pengaturan = () => {
   const [editIsi, setEditIsi] = useState('');
   const [editSelectedBiodata, setEditSelectedBiodata] = useState<string[]>([]);
 
-  // Custom biodata state
   const [newCustomLabel, setNewCustomLabel] = useState('');
   const [newCustomKey, setNewCustomKey] = useState('');
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'kepala' | 'tahun' | 'jenis' | 'biodata'; id: string; label: string } | null>(null);
 
   const h = data.settings.suratHeader;
   const updateHeader = (field: string, value: string) => {
@@ -318,18 +315,41 @@ const Pengaturan = () => {
     toast.success('Dihapus');
   };
 
+  // Confirm delete handler
+  const handleConfirmDelete = () => {
+    if (!deleteTarget) return;
+    switch (deleteTarget.type) {
+      case 'kepala': deleteKepala(deleteTarget.id); break;
+      case 'tahun': deleteTahun(deleteTarget.id); break;
+      case 'jenis': deleteJenisSurat(deleteTarget.id); break;
+      case 'biodata': deleteCustomBiodata(deleteTarget.id); break;
+    }
+    setDeleteTarget(null);
+  };
+
+  const getDeleteDescription = () => {
+    if (!deleteTarget) return '';
+    const labels: Record<string, string> = {
+      kepala: 'Kepala Madrasah',
+      tahun: 'Tahun Ajaran',
+      jenis: 'Jenis Surat (beserta semua surat terkait)',
+      biodata: 'Biodata Kustom',
+    };
+    return `Apakah Anda yakin ingin menghapus ${labels[deleteTarget.type]} "${deleteTarget.label}"? Tindakan ini tidak dapat dibatalkan.`;
+  };
+
   return (
     <div className="space-y-6 max-w-4xl">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
       <Tabs defaultValue="kepala">
-        <TabsList className="flex w-full h-auto gap-1 overflow-x-auto scrollbar-none">
-          <TabsTrigger value="kepala" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><UserRound className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Kepala</span></TabsTrigger>
-          <TabsTrigger value="tahun" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><CalendarDays className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Tahun Ajaran</span></TabsTrigger>
-          <TabsTrigger value="surat" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><FileText className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Jenis Surat</span></TabsTrigger>
-          <TabsTrigger value="biodata" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><Contact className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Biodata</span></TabsTrigger>
-          <TabsTrigger value="header" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><Building className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Header</span></TabsTrigger>
-          <TabsTrigger value="tema" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><Palette className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Tema</span></TabsTrigger>
-          <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 shrink-0 px-2.5 py-1.5"><Database className="h-4 w-4 shrink-0" /><span className="hidden md:inline">Data</span></TabsTrigger>
+        <TabsList className="flex w-full h-auto gap-1 overflow-x-auto scrollbar-none bg-muted p-1 rounded-lg">
+          <TabsTrigger value="kepala" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><UserRound className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Kepala</span></TabsTrigger>
+          <TabsTrigger value="tahun" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><CalendarDays className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Tahun Ajaran</span></TabsTrigger>
+          <TabsTrigger value="surat" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><FileText className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Jenis Surat</span></TabsTrigger>
+          <TabsTrigger value="biodata" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><Contact className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Biodata</span></TabsTrigger>
+          <TabsTrigger value="header" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><Building className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Header</span></TabsTrigger>
+          <TabsTrigger value="tema" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><Palette className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Tema</span></TabsTrigger>
+          <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 shrink-0 min-w-0 px-2.5 py-1.5"><Database className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Data</span></TabsTrigger>
         </TabsList>
 
         {/* Kepala Madrasah */}
@@ -347,7 +367,7 @@ const Pengaturan = () => {
                   {data.settings.kepalaMadrasah.map(k => (
                     <div key={k.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
                       <div><div className="font-medium text-sm">{k.nama}</div><div className="text-xs text-muted-foreground">NIP: {k.nip}</div></div>
-                      <Button variant="ghost" size="icon" onClick={() => deleteKepala(k.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'kepala', id: k.id, label: k.nama })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   ))}
                 </div>
@@ -370,7 +390,7 @@ const Pengaturan = () => {
                   {data.settings.tahunAjaran.map(t => (
                     <div key={t.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
                       <span className="text-sm font-medium">{t.label}</span>
-                      <Button variant="ghost" size="icon" onClick={() => deleteTahun(t.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'tahun', id: t.id, label: t.label })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                     </div>
                   ))}
                 </div>
@@ -429,7 +449,6 @@ const Pengaturan = () => {
                     </Button>
                     
                   </div>
-                  {/* Biodata checklist for new template */}
                   <BiodataChecklistSection
                     selectedBiodata={newSelectedBiodata}
                     onSelectedChange={setNewSelectedBiodata}
@@ -464,7 +483,6 @@ const Pengaturan = () => {
                     
                     <Button variant="ghost" size="sm" onClick={() => setEditingJenis(null)}>Batal</Button>
                   </div>
-                  {/* Biodata checklist for edit template */}
                   <BiodataChecklistSection
                     selectedBiodata={editSelectedBiodata}
                     onSelectedChange={setEditSelectedBiodata}
@@ -492,7 +510,7 @@ const Pengaturan = () => {
                       </div>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="sm" onClick={() => startEditJenis(js)}>Edit</Button>
-                        <Button variant="ghost" size="icon" onClick={() => deleteJenisSurat(js.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                        <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'jenis', id: js.id, label: js.label })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                       </div>
                     </div>
                   ))}
@@ -547,7 +565,7 @@ const Pengaturan = () => {
                         <span>{f.label}</span>
                         <div className="flex items-center gap-2">
                           <code className="text-xs text-muted-foreground">{f.placeholder}</code>
-                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => deleteCustomBiodata(f.key)}>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setDeleteTarget({ type: 'biodata', id: f.key, label: f.label })}>
                             <Trash2 className="h-3 w-3 text-destructive" />
                           </Button>
                         </div>
@@ -697,6 +715,14 @@ const Pengaturan = () => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Shared delete confirmation dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        description={getDeleteDescription()}
+        onConfirm={handleConfirmDelete}
+      />
     </div>
   );
 };

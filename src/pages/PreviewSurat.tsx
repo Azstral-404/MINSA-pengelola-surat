@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { A4Preview } from '@/components/A4Preview';
@@ -7,17 +7,18 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, MoreVertical, Printer, Trash2, Pencil, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 
 const PreviewSurat = () => {
   const { jenisSlug, id } = useParams<{ jenisSlug: string; id: string }>();
   const [searchParams] = useSearchParams();
   const { data, updateData } = useApp();
   const navigate = useNavigate();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const jenisSurat = data.settings.jenisSurat.find(j => j.slug === jenisSlug);
   const surat = data.surat.find(s => s.id === id);
 
-  // Auto-trigger print/docx from query param
   useEffect(() => {
     const action = searchParams.get('action');
     if (!action || !surat) return;
@@ -97,7 +98,7 @@ const PreviewSurat = () => {
                   <FileDown className="mr-2 h-4 w-4" /> Export DOCX
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" onClick={deleteSurat}>
+                <DropdownMenuItem className="text-destructive" onClick={() => setShowDeleteConfirm(true)}>
                   <Trash2 className="mr-2 h-4 w-4" /> Hapus
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -107,6 +108,13 @@ const PreviewSurat = () => {
       </Card>
 
       <A4Preview surat={surat} jenisSurat={jenisSurat} />
+
+      <ConfirmDialog
+        open={showDeleteConfirm}
+        onOpenChange={setShowDeleteConfirm}
+        description={`Apakah Anda yakin ingin menghapus surat "${surat.nama}"? Tindakan ini tidak dapat dibatalkan.`}
+        onConfirm={deleteSurat}
+      />
     </div>
   );
 };
