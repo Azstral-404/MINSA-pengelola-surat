@@ -8,48 +8,12 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, UserPlus, ListChecks } from 'lucide-react';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, ListChecks } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
 
-const BiodataInsertButton = ({ editorRef, settings }: { editorRef: React.RefObject<HTMLDivElement>; settings: any }) => {
-  const [open, setOpen] = useState(false);
-  const allFields = getAllBiodataFields(settings);
-
-  const insertPlaceholder = (text: string) => {
-    const el = editorRef.current;
-    if (!el) return;
-    el.focus();
-    document.execCommand('insertText', false, text);
-    setOpen(false);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" size="sm">
-          <UserPlus className="mr-1 h-4 w-4" />Biodata
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-56 p-2" align="start">
-        <p className="text-xs font-medium text-muted-foreground mb-2">Sisipkan placeholder:</p>
-        <div className="flex flex-wrap gap-1">
-          {allFields.map(item => (
-            <button
-              key={item.key}
-              onClick={() => insertPlaceholder(item.placeholder)}
-              className="px-2 py-1 text-xs rounded-md bg-muted hover:bg-accent hover:text-accent-foreground transition-colors"
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
 
 const BiodataChecklistSection = ({
   selectedBiodata,
@@ -370,7 +334,7 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
-                    <BiodataInsertButton editorRef={templateRef} settings={data.settings} />
+                    
                   </div>
                   {/* Biodata checklist for new template */}
                   <BiodataChecklistSection
@@ -404,7 +368,7 @@ const Pengaturan = () => {
                     <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
                       <Upload className="mr-1 h-4 w-4" />Import DOCX
                     </Button>
-                    <BiodataInsertButton editorRef={editTemplateRef} settings={data.settings} />
+                    
                     <Button variant="ghost" size="sm" onClick={() => setEditingJenis(null)}>Batal</Button>
                   </div>
                   {/* Biodata checklist for edit template */}
