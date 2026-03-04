@@ -66,7 +66,7 @@ export interface Surat {
 }
 
 export type ThemeName = 'light' | 'dark';
-export type ColorTheme = 'default' | 'emerald' | 'ocean' | 'sunset' | 'royal' | 'rose' | 'teal' | 'amber' | 'slate';
+export type ColorTheme = 'default' | 'emerald' | 'ocean' | 'sunset' | 'royal' | 'rose' | 'teal' | 'amber' | 'slate' | 'indigo' | 'cyan' | 'fuchsia' | 'lime' | 'zinc';
 
 export interface SuratHeader {
   line1: string;
@@ -91,6 +91,11 @@ export interface AppSettings {
   npsn: string;
   nomorSuratFormat: string;
   customBiodata?: BiodataField[];
+  appName: string;
+  schoolName: string;
+  customLogo: string;
+  customKemenagLogo: string;
+  onboarded: boolean;
 }
 
 export interface AppData {
@@ -122,6 +127,11 @@ const DEFAULT_DATA: AppData = {
     npsn: '60703494',
     nomorSuratFormat: 'B. {nomor} /Mi.01.21/1/PP.01.1/{bulan}/{tahun}',
     customBiodata: [],
+    appName: 'MINSA',
+    schoolName: 'MIN 1 Langsa',
+    customLogo: '',
+    customKemenagLogo: '',
+    onboarded: false,
   },
   surat: [],
 };
@@ -141,6 +151,11 @@ export function loadData(): AppData {
           ...parsed.settings,
           suratHeader: { ...DEFAULT_HEADER, ...(parsed.settings?.suratHeader || {}) },
           customBiodata: parsed.settings?.customBiodata || [],
+          appName: parsed.settings?.appName || 'MINSA',
+          schoolName: parsed.settings?.schoolName || 'MIN 1 Langsa',
+          customLogo: parsed.settings?.customLogo || '',
+          customKemenagLogo: parsed.settings?.customKemenagLogo || '',
+          onboarded: parsed.settings?.onboarded ?? false,
         },
         surat: (parsed.surat || []).map((s: any) => ({ ...s, arah: s.arah || 'keluar', extraFields: s.extraFields || {} })),
       };
@@ -188,6 +203,11 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; color: string }[]
   { value: 'teal', label: 'Teal', color: '#0d9488' },
   { value: 'amber', label: 'Amber', color: '#d97706' },
   { value: 'slate', label: 'Slate', color: '#475569' },
+  { value: 'indigo', label: 'Indigo', color: '#4f46e5' },
+  { value: 'cyan', label: 'Cyan', color: '#06b6d4' },
+  { value: 'fuchsia', label: 'Fuchsia', color: '#d946ef' },
+  { value: 'lime', label: 'Lime', color: '#84cc16' },
+  { value: 'zinc', label: 'Zinc', color: '#71717a' },
 ];
 
 export function isInTahunAjaran(surat: Pick<Surat, 'bulan' | 'tahun'>, taLabel: string): boolean {
@@ -224,4 +244,20 @@ export function generateBiodataTableHtml(selectedKeys: string[], allFields: Biod
     html += `<div><span style="display:inline-block;min-width:${maxLen}ch">${field.label}</span>: ${field.placeholder}</div>`;
   }
   return html;
+}
+
+export const MADRASAH_TYPES = ['RA', 'MI', 'MIN', 'MIS', 'MTS', 'MTs', 'MTsN', 'MTSN', 'MTSS', 'MTsS', 'MA', 'MAN', 'MAS'];
+
+export function detectMadrasahInfo(schoolName: string): { type: string; city: string } | null {
+  const sorted = [...MADRASAH_TYPES].sort((a, b) => b.length - a.length);
+  for (const type of sorted) {
+    const regex = new RegExp(`^${type}\\s+`, 'i');
+    if (regex.test(schoolName.trim())) {
+      const rest = schoolName.trim().replace(regex, '');
+      // Remove leading numbers like "1 " from "MIN 1 Langsa"
+      const city = rest.replace(/^\d+\s*/, '').trim();
+      if (city) return { type, city };
+    }
+  }
+  return null;
 }

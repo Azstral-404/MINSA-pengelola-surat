@@ -6,6 +6,9 @@ import { Input } from '@/components/ui/input';
 import { BULAN_NAMES, isInTahunAjaran } from '@/lib/store';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownLeft, Plus, Pencil, Check } from 'lucide-react';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 const Index = () => {
   const { data, updateData } = useApp();
@@ -36,6 +39,43 @@ const Index = () => {
 
   const recentSurat = [...filteredSurat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
 
+  const handleAddSurat = (arah: 'masuk' | 'keluar') => {
+    if (jenisSurat.length === 0) {
+      navigate('/pengaturan?tab=surat');
+    } else if (jenisSurat.length === 1) {
+      navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=${arah}`);
+    }
+    // For 2+, the DropdownMenu handles it
+  };
+
+  const SuratButton = ({ arah, className, label }: { arah: 'masuk' | 'keluar'; className: string; label: string }) => {
+    if (jenisSurat.length >= 2) {
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className={`h-12 flex items-center gap-2 ${className}`}>
+              <Plus className="h-4 w-4" />
+              <span className="text-xs">{label}</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {jenisSurat.map(js => (
+              <DropdownMenuItem key={js.id} onClick={() => navigate(`/surat/${js.slug}/tambah?arah=${arah}`)}>
+                {js.label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    }
+    return (
+      <Button className={`h-12 flex items-center gap-2 ${className}`} onClick={() => handleAddSurat(arah)}>
+        <Plus className="h-4 w-4" />
+        <span className="text-xs">{label}</span>
+      </Button>
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Editable Title */}
@@ -63,12 +103,11 @@ const Index = () => {
             </>
           )}
         </div>
-        <p className="text-sm text-muted-foreground">MIN 1 Langsa — NSM: {data.settings.nsm} · NPSN: {data.settings.npsn}{activeTA ? ` — TA ${activeTA}` : ''}</p>
+        <p className="text-sm text-muted-foreground">{data.settings.schoolName} — NSM: {data.settings.nsm} · NPSN: {data.settings.npsn}{activeTA ? ` — TA ${activeTA}` : ''}</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total Stats - spans 2 cols */}
         <Card className="md:col-span-2 overflow-hidden">
           <CardContent className="p-0 h-full">
             <div className="grid grid-cols-2 h-full">
@@ -88,7 +127,6 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        {/* Right column: Monthly stats + buttons stacked */}
         <div className="flex flex-col gap-4">
           <Card className="overflow-hidden">
             <CardContent className="p-0">
@@ -107,20 +145,8 @@ const Index = () => {
             </CardContent>
           </Card>
           <div className="grid grid-cols-2 gap-2">
-            <Button
-              className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
-              onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=masuk`); }}
-            >
-              <Plus className="h-4 w-4" />
-              <span className="text-xs">Surat Masuk</span>
-            </Button>
-            <Button
-              className="h-12 bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-2"
-              onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=keluar`); }}
-            >
-              <Plus className="h-4 w-4" />
-              <span className="text-xs">Surat Keluar</span>
-            </Button>
+            <SuratButton arah="masuk" className="bg-emerald-600 hover:bg-emerald-700 text-white" label="Surat Masuk" />
+            <SuratButton arah="keluar" className="bg-rose-600 hover:bg-rose-700 text-white" label="Surat Keluar" />
           </div>
         </div>
       </div>
@@ -132,7 +158,7 @@ const Index = () => {
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground text-sm">
               Belum ada surat. Silakan tambahkan jenis surat di{' '}
-              <Link to="/pengaturan" className="text-primary underline">Pengaturan</Link>.
+              <Link to="/pengaturan?tab=surat" className="text-primary underline">Pengaturan</Link>.
             </CardContent>
           </Card>
         ) : (
