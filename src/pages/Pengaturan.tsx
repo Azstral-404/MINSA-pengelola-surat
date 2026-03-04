@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, ListChecks } from 'lucide-react';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, ListChecks, UserRound, CalendarDays, FileText, Contact, Building, Palette, Database } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
@@ -36,30 +36,63 @@ const BiodataChecklistSection = ({
     }
   };
 
-  const savedSelectionRef = useRef<Range | null>(null);
+  const savedRangeRef = useRef<{ startOffset: number; endOffset: number; startPath: number[]; endPath: number[] } | null>(null);
 
-  // Save selection whenever the editor loses focus
+  // Helper to get node path relative to container
+  const getNodePath = (node: Node, container: Node): number[] => {
+    const path: number[] = [];
+    let current = node;
+    while (current && current !== container) {
+      const parent = current.parentNode;
+      if (!parent) break;
+      path.unshift(Array.from(parent.childNodes).indexOf(current as ChildNode));
+      current = parent;
+    }
+    return path;
+  };
+
+  const getNodeFromPath = (path: number[], container: Node): Node | null => {
+    let current: Node = container;
+    for (const index of path) {
+      if (!current.childNodes[index]) return null;
+      current = current.childNodes[index];
+    }
+    return current;
+  };
+
+  const captureSelection = () => {
+    const el = editorRef.current;
+    if (!el) return;
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount > 0) {
+      const range = sel.getRangeAt(0);
+      if (el.contains(range.commonAncestorContainer)) {
+        savedRangeRef.current = {
+          startOffset: range.startOffset,
+          endOffset: range.endOffset,
+          startPath: getNodePath(range.startContainer, el),
+          endPath: getNodePath(range.endContainer, el),
+        };
+      }
+    }
+  };
+
+  // Save selection on interaction
   React.useEffect(() => {
     const el = editorRef.current;
     if (!el) return;
-    const saveSelection = () => {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0) {
-        const range = sel.getRangeAt(0);
-        if (el.contains(range.commonAncestorContainer)) {
-          savedSelectionRef.current = range.cloneRange();
-        }
-      }
-    };
-    el.addEventListener('keyup', saveSelection);
-    el.addEventListener('mouseup', saveSelection);
-    el.addEventListener('blur', saveSelection);
+    el.addEventListener('keyup', captureSelection);
+    el.addEventListener('mouseup', captureSelection);
     return () => {
-      el.removeEventListener('keyup', saveSelection);
-      el.removeEventListener('mouseup', saveSelection);
-      el.removeEventListener('blur', saveSelection);
+      el.removeEventListener('keyup', captureSelection);
+      el.removeEventListener('mouseup', captureSelection);
     };
   }, [editorRef]);
+
+  const handleInsertMouseDown = (e: React.MouseEvent) => {
+    // Capture selection before blur fires
+    captureSelection();
+  };
 
   const insertBiodataTable = () => {
     const el = editorRef.current;
@@ -69,13 +102,31 @@ const BiodataChecklistSection = ({
 
     el.focus();
     const sel = window.getSelection();
+    if (!sel) return;
 
-    // Restore saved cursor position if available
-    if (savedSelectionRef.current && el.contains(savedSelectionRef.current.commonAncestorContainer)) {
-      sel?.removeAllRanges();
-      sel?.addRange(savedSelectionRef.current);
-    } else if (sel) {
-      // Move cursor to end if no saved position
+    // Try to restore saved position
+    const saved = savedRangeRef.current;
+    if (saved) {
+      const startNode = getNodeFromPath(saved.startPath, el);
+      const endNode = getNodeFromPath(saved.endPath, el);
+      if (startNode && endNode) {
+        try {
+          const range = document.createRange();
+          range.setStart(startNode, Math.min(saved.startOffset, startNode.textContent?.length || 0));
+          range.setEnd(endNode, Math.min(saved.endOffset, endNode.textContent?.length || 0));
+          sel.removeAllRanges();
+          sel.addRange(range);
+        } catch {
+          // fallback to end
+          const range = document.createRange();
+          range.selectNodeContents(el);
+          range.collapse(false);
+          sel.removeAllRanges();
+          sel.addRange(range);
+        }
+      }
+    } else {
+      // Move cursor to end
       const range = document.createRange();
       range.selectNodeContents(el);
       range.collapse(false);
@@ -84,6 +135,7 @@ const BiodataChecklistSection = ({
     }
 
     document.execCommand('insertHTML', false, html);
+    savedRangeRef.current = null;
     toast.success('Tabel biodata disisipkan');
   };
 
@@ -93,7 +145,7 @@ const BiodataChecklistSection = ({
         <Label className="text-sm font-medium flex items-center gap-1">
           <ListChecks className="h-4 w-4" />Pilih Biodata untuk Template
         </Label>
-        <Button variant="outline" size="sm" onClick={insertBiodataTable}>
+        <Button variant="outline" size="sm" onMouseDown={handleInsertMouseDown} onClick={insertBiodataTable}>
           Sisipkan Tabel Biodata
         </Button>
       </div>
@@ -270,14 +322,14 @@ const Pengaturan = () => {
     <div className="space-y-6 max-w-4xl">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
       <Tabs defaultValue="kepala">
-        <TabsList className="grid grid-cols-7 w-full">
-          <TabsTrigger value="kepala">Kepala</TabsTrigger>
-          <TabsTrigger value="tahun">Tahun Ajaran</TabsTrigger>
-          <TabsTrigger value="surat">Jenis Surat</TabsTrigger>
-          <TabsTrigger value="biodata">Biodata</TabsTrigger>
-          <TabsTrigger value="header">Header Surat</TabsTrigger>
-          <TabsTrigger value="tema">Tema</TabsTrigger>
-          <TabsTrigger value="penyimpanan">Data</TabsTrigger>
+        <TabsList className="flex flex-wrap w-full h-auto gap-1">
+          <TabsTrigger value="kepala" className="flex items-center gap-1.5 flex-1 min-w-0"><UserRound className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Kepala</span></TabsTrigger>
+          <TabsTrigger value="tahun" className="flex items-center gap-1.5 flex-1 min-w-0"><CalendarDays className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Tahun Ajaran</span></TabsTrigger>
+          <TabsTrigger value="surat" className="flex items-center gap-1.5 flex-1 min-w-0"><FileText className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Jenis Surat</span></TabsTrigger>
+          <TabsTrigger value="biodata" className="flex items-center gap-1.5 flex-1 min-w-0"><Contact className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Biodata</span></TabsTrigger>
+          <TabsTrigger value="header" className="flex items-center gap-1.5 flex-1 min-w-0"><Building className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Header</span></TabsTrigger>
+          <TabsTrigger value="tema" className="flex items-center gap-1.5 flex-1 min-w-0"><Palette className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Tema</span></TabsTrigger>
+          <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 flex-1 min-w-0"><Database className="h-4 w-4 shrink-0" /><span className="hidden sm:inline truncate">Data</span></TabsTrigger>
         </TabsList>
 
         {/* Kepala Madrasah */}
