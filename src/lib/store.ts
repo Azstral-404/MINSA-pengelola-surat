@@ -38,6 +38,7 @@ export interface Surat {
   kepalaMadrasahId: string;
   arah: 'masuk' | 'keluar';
   createdAt: string;
+  updatedAt?: string;
 }
 
 export type ThemeName = 'light' | 'dark';

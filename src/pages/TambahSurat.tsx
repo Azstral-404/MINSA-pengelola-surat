@@ -86,7 +86,7 @@ const TambahSurat = () => {
         namaOrangTua: form.namaOrangTua.trim(), alamat: form.alamat.trim(),
         tahunAjaran, bulan: now.getMonth() + 1, tahun: now.getFullYear(),
         kepalaMadrasahId: form.kepalaMadrasahId, arah: form.arah,
-        createdAt: now.toISOString(),
+        createdAt: now.toISOString(), updatedAt: now.toISOString(),
       };
       updateData(d => ({ ...d, surat: [...d.surat, surat] }));
       toast.success('Surat berhasil ditambahkan');

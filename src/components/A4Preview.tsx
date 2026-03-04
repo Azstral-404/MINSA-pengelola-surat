@@ -88,7 +88,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
             <div style={{ marginTop: '60px', fontWeight: 'bold', textDecoration: 'underline' }}>
               {kepala.nama}
             </div>
-            <div>NIP. {kepala.nip}</div>
+            {kepala.nip && <div>NIP. {kepala.nip}</div>}
           </div>
         )}
       </div>

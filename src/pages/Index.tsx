@@ -62,7 +62,8 @@ const Index = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Total Stats - spans 2 cols */}
         <Card className="md:col-span-2 overflow-hidden">
           <CardContent className="p-0 h-full">
             <div className="grid grid-cols-2 h-full">
@@ -82,37 +83,41 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <Card className="overflow-hidden">
-          <CardContent className="p-0 h-full">
-            <div className="grid grid-cols-2 h-full">
-              <div className="bg-gradient-to-br from-emerald-500/15 to-transparent p-4 flex flex-col justify-center items-center border-r border-border">
-                <span className="text-xs text-muted-foreground uppercase">{BULAN_NAMES[currentMonth]}</span>
-                <span className="text-2xl font-bold text-foreground">{masukBulan}</span>
-                <span className="text-[10px] text-muted-foreground">MASUK</span>
+        {/* Right column: Monthly stats + buttons stacked */}
+        <div className="flex flex-col gap-4">
+          <Card className="overflow-hidden">
+            <CardContent className="p-0">
+              <div className="grid grid-cols-2">
+                <div className="bg-gradient-to-br from-emerald-500/15 to-transparent p-4 flex flex-col justify-center items-center border-r border-border">
+                  <span className="text-xs text-muted-foreground uppercase">{BULAN_NAMES[currentMonth]}</span>
+                  <span className="text-2xl font-bold text-foreground">{masukBulan}</span>
+                  <span className="text-[10px] text-muted-foreground">MASUK</span>
+                </div>
+                <div className="bg-gradient-to-br from-rose-500/15 to-transparent p-4 flex flex-col justify-center items-center">
+                  <span className="text-xs text-muted-foreground uppercase">{BULAN_NAMES[currentMonth]}</span>
+                  <span className="text-2xl font-bold text-foreground">{keluarBulan}</span>
+                  <span className="text-[10px] text-muted-foreground">KELUAR</span>
+                </div>
               </div>
-              <div className="bg-gradient-to-br from-rose-500/15 to-transparent p-4 flex flex-col justify-center items-center">
-                <span className="text-xs text-muted-foreground uppercase">{BULAN_NAMES[currentMonth]}</span>
-                <span className="text-2xl font-bold text-foreground">{keluarBulan}</span>
-                <span className="text-[10px] text-muted-foreground">KELUAR</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Button
-          className="h-full min-h-[80px] bg-emerald-600 hover:bg-emerald-700 text-white flex flex-col gap-1"
-          onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=masuk`); }}
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-xs">Surat Masuk</span>
-        </Button>
-        <Button
-          className="h-full min-h-[80px] bg-rose-600 hover:bg-rose-700 text-white flex flex-col gap-1"
-          onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=keluar`); }}
-        >
-          <Plus className="h-5 w-5" />
-          <span className="text-xs">Surat Keluar</span>
-        </Button>
+            </CardContent>
+          </Card>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              className="h-12 bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-2"
+              onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=masuk`); }}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-xs">Surat Masuk</span>
+            </Button>
+            <Button
+              className="h-12 bg-rose-600 hover:bg-rose-700 text-white flex items-center gap-2"
+              onClick={() => { if (jenisSurat.length > 0) navigate(`/surat/${jenisSurat[0].slug}/tambah?arah=keluar`); }}
+            >
+              <Plus className="h-4 w-4" />
+              <span className="text-xs">Surat Keluar</span>
+            </Button>
+          </div>
+        </div>
       </div>
 
       {/* Riwayat Terakhir */}
