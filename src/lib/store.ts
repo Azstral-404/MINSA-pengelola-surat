@@ -51,6 +51,7 @@ export interface SuratHeader {
   address: string;
   contact: string;
   logoUrl: string; // base64 data URL
+  logoSize: number; // in mm, default 22
 }
 
 export interface AppSettings {
@@ -79,6 +80,7 @@ const DEFAULT_HEADER: SuratHeader = {
   address: 'Jl. T.M Bahrum No.2 Kel. Jawa Kec. Langsa Kota, Kota Langsa, 24412',
   contact: 'Telp: (0641) 426487 Email: minaborong@gmail.com',
   logoUrl: '',
+  logoSize: 22,
 };
 
 const DEFAULT_DATA: AppData = {

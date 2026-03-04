@@ -52,7 +52,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           <img
             src={logoSrc}
             alt="Logo"
-            style={{ position: 'absolute', left: '-10mm', bottom: '5px', width: '22mm', height: '22mm', objectFit: 'contain', zIndex: 10 }}
+            style={{ position: 'absolute', left: '-10mm', bottom: '5px', width: `${h.logoSize || 22}mm`, height: `${h.logoSize || 22}mm`, objectFit: 'contain', zIndex: 10 }}
           />
           <div style={{ fontSize: '16pt', fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>
             {h.line1}
@@ -81,7 +81,8 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         </div>
 
         {/* Isi */}
-        <div style={{ textAlign: 'justify' }} dangerouslySetInnerHTML={{ __html: parsedIsi }} />
+        <style>{`#a4-isi-content p { margin-bottom: 6pt; } #a4-isi-content br + br { display: block; content: ''; margin-top: 6pt; }`}</style>
+        <div id="a4-isi-content" style={{ textAlign: 'justify' }} dangerouslySetInnerHTML={{ __html: parsedIsi }} />
 
         {/* TTD - starts at 100mm from left margin */}
         {kepala && (
