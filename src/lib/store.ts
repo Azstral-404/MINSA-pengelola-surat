@@ -66,7 +66,7 @@ export interface Surat {
 }
 
 export type ThemeName = 'light' | 'dark';
-export type ColorTheme = 'default' | 'emerald' | 'ocean' | 'sunset' | 'royal';
+export type ColorTheme = 'default' | 'emerald' | 'ocean' | 'sunset' | 'royal' | 'rose' | 'teal' | 'amber' | 'slate';
 
 export interface SuratHeader {
   line1: string;
@@ -184,6 +184,10 @@ export const COLOR_THEMES: { value: ColorTheme; label: string; color: string }[]
   { value: 'ocean', label: 'Ocean', color: '#0284c7' },
   { value: 'sunset', label: 'Sunset', color: '#ea580c' },
   { value: 'royal', label: 'Royal', color: '#7c3aed' },
+  { value: 'rose', label: 'Rose', color: '#e11d48' },
+  { value: 'teal', label: 'Teal', color: '#0d9488' },
+  { value: 'amber', label: 'Amber', color: '#d97706' },
+  { value: 'slate', label: 'Slate', color: '#475569' },
 ];
 
 export function isInTahunAjaran(surat: Pick<Surat, 'bulan' | 'tahun'>, taLabel: string): boolean {
