@@ -14,7 +14,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
 
   const parseTemplate = (template: string) => {
     return template
-      .replace(/\{nama\}/gi, surat.nama)
+      .replace(/\{nama\}/gi, '<b>' + surat.nama + '</b>')
       .replace(/\{tempat_lahir\}/gi, surat.tempatLahir)
       .replace(/\{tanggal_lahir\}/gi, surat.tanggalLahir)
       .replace(/\{jenis_kelamin\}/gi, surat.jenisKelamin)
