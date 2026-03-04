@@ -72,6 +72,7 @@ const TambahSurat = () => {
           noInduk: form.noInduk.trim(), nisn: form.nisn.trim(),
           namaOrangTua: form.namaOrangTua.trim(), alamat: form.alamat.trim(),
           nomorSurat: form.nomorSurat.trim(), tahunAjaran,
+          updatedAt: now.toISOString(),
         } : s),
       }));
       toast.success('Surat diperbarui');
