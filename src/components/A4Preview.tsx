@@ -78,7 +78,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         </div>
 
         {/* Isi */}
-        <div dangerouslySetInnerHTML={{ __html: parsedIsi }} />
+        <div style={{ textAlign: 'justify' }} dangerouslySetInnerHTML={{ __html: parsedIsi }} />
 
         {/* TTD - starts at 100mm from left margin */}
         {kepala && (

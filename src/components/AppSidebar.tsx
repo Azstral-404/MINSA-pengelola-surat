@@ -71,6 +71,11 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
+        {!collapsed && (
+          <div className="text-center text-[10px] text-muted-foreground py-1">
+            © copyright AZSTRAL
+          </div>
+        )}
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
