@@ -3,7 +3,7 @@ import { useApp } from '@/contexts/AppContext';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { BULAN_NAMES } from '@/lib/store';
+import { BULAN_NAMES, isInTahunAjaran } from '@/lib/store';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowUpRight, ArrowDownLeft, Plus, Pencil, Check } from 'lucide-react';
 
