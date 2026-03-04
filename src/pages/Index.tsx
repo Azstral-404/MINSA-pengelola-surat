@@ -22,6 +22,9 @@ const Index = () => {
     setEditingTitle(false);
   };
 
+  const { jenisSurat } = data.settings;
+  const activeTA = data.settings.activeTahunAjaran;
+
   const filteredSurat = activeTA
     ? data.surat.filter(s => isInTahunAjaran(s, activeTA))
     : data.surat;
@@ -32,8 +35,6 @@ const Index = () => {
   const keluarBulan = filteredSurat.filter(s => s.arah === 'keluar' && s.bulan === currentMonth && s.tahun === currentYear).length;
 
   const recentSurat = [...filteredSurat].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8);
-  const { jenisSurat } = data.settings;
-  const activeTA = data.settings.activeTahunAjaran;
 
   return (
     <div className="space-y-6">
