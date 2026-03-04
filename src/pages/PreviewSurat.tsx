@@ -7,7 +7,6 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ArrowLeft, MoreVertical, Printer, Trash2, Pencil, FileDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { toast } from 'sonner';
 
 const PreviewSurat = () => {
   const { jenisSlug, id } = useParams<{ jenisSlug: string; id: string }>();
