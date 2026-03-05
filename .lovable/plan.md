@@ -1,88 +1,113 @@
+# Plan: Comprehensive Fixes and Enhancements
 
+## 1. Fix PDF Export & Print
 
-# Plan: Dashboard Buttons, Responsive Tabs, PDF Export, Themes, Akun Tab, and Landing Page
+**Problem**: Print/PDF opens a new window but doesn't properly replicate the A4 preview styling. Images may not load, styles are incomplete.
 
-## 1. Dashboard Surat Buttons (Index.tsx)
+**Fix in `PreviewSurat.tsx**`:
 
-**Problem**: Buttons silently do nothing when no jenis surat exists, and always pick the first one.
+- Rewrite `handlePrint` and `handleExportPdf` to clone the full A4 element including computed styles
+- Inline all styles and convert images to base64 before writing to the new window
+- For PDF: add a toast instructing user to "Save as PDF" in print dialog
+- For Print: ensure `w.print()` fires after images load using `onload` event
 
-**Fix**:
-- **0 jenis surat**: Navigate to `/pengaturan` and auto-select the "surat" tab (via query param `?tab=surat`)
-- **1 jenis surat**: Navigate directly to tambah page (current behavior)
-- **2+ jenis surat**: Show a popover/dropdown listing all jenis surat options for user to pick
+## 2. Fix Responsive Tabs in Pengaturan
 
-Implementation: Use `DropdownMenu` from shadcn for the multi-option case. Both green and red buttons get the same logic but with different `arah` param.
+**Problem**: Tabs don't fill the full width of the main content area. `max-w-4xl` constrains the page.
 
-## 2. Responsive Tabs on Pengaturan (Pengaturan.tsx)
+**Fix in `Pengaturan.tsx**`:
 
-**Problem**: Tabs don't reflow properly when sidebar opens/closes.
+- Remove `max-w-4xl` from the container div so content fills the main area
+- Use `w-full` on all tab content containers
+- Tabs already use `flex-wrap` and `flex-1`; ensure the wrapping parent has no artificial width cap
 
-**Fix**: Use `useSidebar` hook from sidebar context to listen to sidebar state changes. Add a key or force re-render on sidebar state change. Also apply `flex-wrap` and ensure each tab trigger uses proper responsive sizing. The real fix: the `TabsList` needs `w-full` and tabs should use `flex-1 min-w-0` with proper truncation. Will also add the new "Akun" tab (8th tab).
+## 3. Fix Default Theme to Follow System
 
-## 3. Remove "Manajemen Surat" from Sidebar (AppSidebar.tsx)
+**Problem**: Default theme is hardcoded to `'light'`.
 
-Remove the `<span className="text-xs text-muted-foreground">Manajemen Surat</span>` line.
+**Fix in `src/lib/store.ts` and `src/hooks/useAppData.ts**`:
 
-## 4. Export PDF instead of DOCX (PreviewSurat.tsx)
+- Change default `theme` to `'system'` 
+- Actually, simpler: on first load (when `onboarded` is false and no stored data), detect system preference using `window.matchMedia('(prefers-color-scheme: dark)')` and set theme accordingly
+- In `useAppData.ts`, when theme is `'light'` and it's the first load, check system preference
 
-- Change "Export DOCX" to "Export PDF"
-- Remove "PDF" text from "Print / PDF" menu item (just "Print")
-- Use `window.print()` approach with proper `@media print` CSS to generate a true PDF via browser's Save as PDF, OR use `html2canvas` + `jspdf`. Since we want it to look exactly like the preview, use the browser's built-in print-to-PDF: open a new window with the A4 content, trigger print (user can save as PDF). This is what `handlePrint` already does. For a dedicated "Export PDF" we'll do the same print flow but label it clearly.
-- Remove the `handleExportDocx` function entirely.
+Better approach: just change the initial default in `DEFAULT_DATA` to detect system theme. In `loadData()`, if no stored data exists, detect system dark mode and set `theme` accordingly.
 
-## 5. Add 5 More Themes (store.ts + index.css)
+## 4. Fix Mobile Sidebar Text Not Showing
 
-Add these 5 new color themes with full light+dark CSS variables:
-- **Indigo** (`#4f46e5`)
-- **Cyan** (`#06b6d4`)  
-- **Fuchsia** (`#d946ef`)
-- **Lime** (`#84cc16`)
-- **Zinc** (`#71717a`)
+**Problem**: On mobile, sidebar menu items (Dashboard, Pengaturan, etc.) text doesn't show.
 
-Update `ColorTheme` type and `COLOR_THEMES` array in store.ts.
+**Fix in `AppSidebar.tsx**`: The sidebar uses `collapsed` state to hide text. On mobile, the sidebar sheet should show full text. Check that the `collapsed` variable correctly reflects mobile state. The `useSidebar` hook's `state` might always be `collapsed` on mobile. Need to check — on mobile the sidebar opens as a sheet and should show text. Fix: use `isMobile` from `useSidebar` and show text when sidebar is open (as sheet) on mobile.
 
-## 6. Akun Tab in Pengaturan (Pengaturan.tsx)
+## 5. Fix Biodata Checklist - Don't Reset Ticks, Merge Not Duplicate
 
-New tab after "Data" containing:
-- **MINSA logo**: Upload/change the sidebar logo (currently `minsa-logo.png`). Store as base64 in settings.
-- **Kemenag logo**: Upload/change the header Kemenag logo (currently `kemenag-logo.png`). Store as base64 in settings.
-- **MINSA text**: Change the sidebar title text (default "MINSA"). Store in `settings.appName`.
-- **MIN 1 Langsa text**: Change the school short name. Store in `settings.schoolName`.
-- **Identitas Sekolah (NSM/NPSN)**: Move from Header tab to here.
-- **Logout button**: Clear localStorage + reload, with ConfirmDialog confirmation.
+**Problem**: After clicking "Sisipkan Tabel Biodata", selected checkboxes reset. Also, inserting again duplicates instead of merging.
 
-New fields in `AppSettings`: `appName`, `schoolName`, `customLogo`, `customKemenagLogo`.
+**Fix in `BiodataChecklistSection**`:
 
-## 7. Landing/Onboarding Page
+- Don't reset `selectedBiodata` after inserting — remove any reset logic
+- For merge: before inserting, scan the editor content for existing biodata table divs. Parse which fields are already present. Only insert fields that aren't already in the content. Or: replace the entire existing biodata block with the new merged set.
 
-**When**: First time opening (no data in localStorage, or a flag `settings.onboarded !== true`).
+Implementation: When inserting, look for existing biodata lines in the editor HTML. If found, replace the block with updated fields including both old and newly selected ones.
 
-**Flow**: Show a setup page instead of dashboard:
-- **Surname** field → sets `appName` (sidebar title, default "MINSA")
-- **Nama Sekolah** field → sets `schoolName` (e.g. "MIN 1 Langsa")
-- Auto-detect madrasah type from name: if contains RA/MI/MIN/MIS/MTS/MTs/MTsN/MTSN/MTSS/MTsS/MA/MAN/MAS, show below the field: `Kementerian Agama Kota {extracted city}` and auto-set `suratHeader.line2`.
-- Submit button saves settings and sets `onboarded: true`.
+## 6. Add Confirmation for Adding Kepala, Tahun Ajaran, Jenis Surat
 
-Detection logic: Parse school name like "MIN 1 Langsa" → type="MIN", the rest after the number = city "Langsa" → display "Kementerian Agama Kota Langsa".
+**Fix in `Pengaturan.tsx**`:
 
-## 8. Dashboard Identity Sync (Index.tsx)
+- Add `addConfirm` state: `{ type: string; action: () => void } | null`
+- Before `addKepala`, `addTahun`, `addJenisSurat` execute, show a ConfirmDialog asking "Tambah [item]?"
+- Use a generic ConfirmDialog with `title="Konfirmasi Tambah"` and positive styling (not destructive)
 
-- Remove hardcoded "MIN 1 Langsa" text
-- Use `data.settings.schoolName` instead
-- The subtitle shows `{schoolName} — NSM: ... · NPSN: ...`
+## 7. Move Kepala Madrasah to Akun Tab, Prevent Add it twice only one, Allow Edit
+
+**Fix in `Pengaturan.tsx**`:
+
+- Remove the `kepala` TabsContent and move its content into the `akun` tab, below the existing identity section
+- Add duplicate check: prevent adding if same `nama` already exists
+- Add edit functionality: inline edit with state for `editingKepalaId`, `editKepalaName`, `editKephalNip`
+- Remove `kepala` from TabsList
+
+## 8. Change Defaults
+
+**Fix in `src/lib/store.ts**`:
+
+- `appName`: `'MINSA'` → `'MANAJEMEN SURAT'`
+- `schoolName`: `'MIN 1 Langsa'` → `'NAMA SEKOLAH'`
+- `nsm`: `'111111740001'` → `''`
+- `npsn`: `'60703494'` → `''`
+- All `DEFAULT_HEADER` fields: set to empty strings `''`
+- `nomorSuratFormat`: keep as is (or clear)
+
+**Fix in `Layout.tsx**`: If `schoolName === 'NAMA SEKOLAH'`, hide "Kementerian Agama Kota ..." subtitle.
+
+**Fix in `Onboarding.tsx**`: 
+
+- Default `appName` to `'MANAJEMEN SURAT'`, `schoolName` to empty
+- Add NSM and NPSN fields (number-only inputs)
+- Fix detection: if school name matches madrasah types → show "Kementerian Agama Kota {city}"; else show "Kementerian Pendidikan"
+
+## 9. Header Font Size Controls + Live Preview
+
+**Fix in `Pengaturan.tsx` Header tab**:
+
+- Add `SuratHeader` fields for font sizes: `line1Size`, `line2Size`, `schoolSize`, `addressSize`, `contactSize` (defaults: 16, 14, 12, 11, 11)
+- For each header field (Baris 1 through Kontak), add a dropdown/select on the right side showing font size options (8pt–20pt)
+- Add a live A4-style preview below the inputs showing how the header looks
+
+**Fix in `src/lib/store.ts**`: Extend `SuratHeader` interface with optional size fields.
+
+**Fix in `A4Preview.tsx**`: Use the new size fields from header settings instead of hardcoded values.
 
 ## Files Changed
 
-| File | Changes |
-|------|---------|
-| `src/lib/store.ts` | Add `appName`, `schoolName`, `customLogo`, `customKemenagLogo`, `onboarded` to AppSettings. Add 5 new themes to ColorTheme type and COLOR_THEMES array. Update defaults and loadData. |
-| `src/index.css` | Add CSS variables for 5 new themes (indigo, cyan, fuchsia, lime, zinc) with light+dark variants. |
-| `src/pages/Index.tsx` | Smart button logic with DropdownMenu for 2+ jenis surat. Use `schoolName` from settings instead of hardcoded text. |
-| `src/pages/Pengaturan.tsx` | Add Akun tab (icon: User). Move NSM/NPSN from Header to Akun. Add logo uploads, app name, school name, logout. Support `?tab=surat` query param for default tab. Use `useSidebar` for responsive tabs. |
-| `src/pages/PreviewSurat.tsx` | Replace Export DOCX with Export PDF. Remove "PDF" from Print menu item. |
-| `src/components/AppSidebar.tsx` | Remove "Manajemen Surat" text. Use dynamic `appName` and logos from settings. |
-| `src/components/Layout.tsx` | Use dynamic `schoolName` and `customKemenagLogo` from settings. |
-| `src/components/A4Preview.tsx` | Use dynamic Kemenag logo from settings. |
-| `src/pages/Onboarding.tsx` | New landing page for first-time setup. |
-| `src/App.tsx` | Add onboarding route, redirect to it if not onboarded. |
 
+| File                            | Changes                                                                                                                                                                                       |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/store.ts`              | Change defaults (appName, schoolName, nsm, npsn, header). Add font size fields to SuratHeader. Fix `detectMadrasahInfo` for non-madrasah fallback.                                            |
+| `src/hooks/useAppData.ts`       | Detect system dark/light on first load.                                                                                                                                                       |
+| `src/pages/PreviewSurat.tsx`    | Rewrite print/PDF to properly clone styles and wait for images.                                                                                                                               |
+| `src/pages/Pengaturan.tsx`      | Remove `max-w-4xl`. Remove Kepala tab, merge into Akun. Add confirmation for add actions. Add header font size dropdowns + live preview. Fix biodata insert merge logic. Add edit for Kepala. |
+| `src/pages/Onboarding.tsx`      | Default to "MANAJEMEN SURAT". Add NSM/NPSN. Fix detection to show "Kementerian Pendidikan" for non-madrasah.                                                                                  |
+| `src/components/AppSidebar.tsx` | Fix mobile text visibility using `isMobile` from useSidebar.                                                                                                                                  |
+| `src/components/Layout.tsx`     | Hide "Kementerian Agama" when schoolName is default.                                                                                                                                          |
+| `src/components/A4Preview.tsx`  | Use dynamic font sizes from header settings.                                                                                                                                                  |
