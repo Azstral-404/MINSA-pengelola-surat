@@ -1,7 +1,7 @@
 {
   "name": "vite_react_shadcn_ts",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
@@ -98,30 +98,41 @@
     "wait-on": "^9.0.4"
   },
   "build": {
-    "appId": "com.minsa.surat",
+    "appId": "com.azstral.minsa",
     "productName": "MINSA Surat Manager",
+    "copyright": "Copyright © 2025 AZSTRAL",
     "directories": {
       "output": "dist-electron"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "public/**/*",
-      "node_modules/**/*"
+      "public/**/*"
+    ],
+    "extraResources": [
+      { "from": "public/minsa-icon.png", "to": "minsa-icon.png" }
     ],
     "win": {
       "target": [
         { "target": "nsis", "arch": ["x64"] },
         { "target": "portable", "arch": ["x64"] }
       ],
-      "icon": "public/favicon.ico"
+      "icon": "public/minsa-icon.png",
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "MINSA Surat Manager"
+      "shortcutName": "MINSA Surat Manager",
+      "installerIcon": "public/minsa-icon.png",
+      "uninstallerIcon": "public/minsa-icon.png",
+      "installerHeaderIcon": "public/minsa-icon.png",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "MINSA-Surat-Manager-Portable-${version}.exe"
     }
   }
 }

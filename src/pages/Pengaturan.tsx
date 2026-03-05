@@ -22,6 +22,68 @@ import kemenagLogo from '@/assets/kemenag-logo.png';
 
 const FONT_SIZE_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 8); // 8-20
 
+// Detect Electron environment
+declare global {
+  interface Window {
+    electronAPI?: {
+      getDataPath: () => Promise<string>;
+      chooseDataPath: () => Promise<string | null>;
+      isElectron: boolean;
+    };
+  }
+}
+
+const isElectron = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
+
+function DataPathSection() {
+  const [dataPath, setDataPath] = React.useState<string>('');
+  const [loading, setLoading] = React.useState(false);
+
+  React.useEffect(() => {
+    if (isElectron && window.electronAPI) {
+      window.electronAPI.getDataPath().then(p => setDataPath(p));
+    }
+  }, []);
+
+  const handleChoose = async () => {
+    if (!isElectron || !window.electronAPI) return;
+    setLoading(true);
+    try {
+      const chosen = await window.electronAPI.chooseDataPath();
+      if (chosen) {
+        setDataPath(chosen);
+        toast.success('Lokasi penyimpanan diperbarui. Restart aplikasi agar perubahan berlaku.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="p-4 rounded-lg border border-border bg-muted/50 space-y-2">
+      <div className="flex items-center gap-2">
+        <FolderOpen className="h-4 w-4 text-muted-foreground" />
+        <Label className="text-sm font-medium">Lokasi Penyimpanan Data</Label>
+      </div>
+      {isElectron ? (
+        <>
+          <p className="text-xs font-mono text-foreground break-all">{dataPath || 'Memuat...'}</p>
+          <Button variant="outline" size="sm" onClick={handleChoose} disabled={loading}>
+            <FolderOpen className="mr-1 h-4 w-4" />
+            {loading ? 'Memilih...' : 'Ubah Lokasi'}
+          </Button>
+          <p className="text-xs text-muted-foreground">Pilih folder untuk menyimpan data aplikasi. Restart diperlukan setelah mengubah.</p>
+        </>
+      ) : (
+        <>
+          <p className="text-xs text-muted-foreground font-mono">localStorage (browser)</p>
+          <p className="text-xs text-muted-foreground">Lokasi kustom tersedia di versi desktop app (Electron).</p>
+        </>
+      )}
+    </div>
+  );
+}
+
 const BiodataChecklistSection = ({
   selectedBiodata,
   onSelectedChange,
@@ -911,7 +973,7 @@ const Pengaturan = () => {
                 {kabupatenSearch && (
                   <div className="text-xs text-muted-foreground space-y-0.5 pt-1">
                     <div>Baris 2: <span className="font-medium text-foreground">{buildLine2(kabupatenSearch)}</span></div>
-                    <div>Sub sekolah: <span className="font-medium text-foreground">{buildSchoolSub(kabupatenSearch)}</span></div>
+                    <div>Kementerian Agama: <span className="font-medium text-foreground">{buildSchoolSub(kabupatenSearch)}</span></div>
                   </div>
                 )}
               </div>
@@ -920,7 +982,6 @@ const Pengaturan = () => {
                 { label: 'Baris 1', field: 'line1', sizeField: 'line1Size', defaultSize: 16, hint: '' },
                 { label: 'Baris 2 (auto dari kabupaten)', field: 'line2', sizeField: 'line2Size', defaultSize: 14, hint: 'KANTOR KEMENTERIAN AGAMA {KABUPATEN}' },
                 { label: 'Nama Sekolah (auto dari nama sekolah)', field: 'school', sizeField: 'schoolSize', defaultSize: 12, hint: '' },
-                { label: 'Sub Sekolah (auto dari kabupaten)', field: 'schoolSub', sizeField: 'schoolSubSize', defaultSize: 10, hint: 'Kementerian Agama {Kabupaten}' },
                 { label: 'Alamat', field: 'address', sizeField: 'addressSize', defaultSize: 11, hint: '' },
                 { label: 'Kontak', field: 'contact', sizeField: 'contactSize', defaultSize: 11, hint: '' },
               ].map(item => (
@@ -947,15 +1008,7 @@ const Pengaturan = () => {
                             Reset dari kabupaten
                           </button>
                         )}
-                        {item.field === 'schoolSub' && kabupatenSearch && (
-                          <button
-                            type="button"
-                            className="text-xs text-primary hover:underline"
-                            onClick={() => updateHeader('schoolSub', buildSchoolSub(kabupatenSearch))}
-                          >
-                            Reset dari kabupaten
-                          </button>
-                        )}
+
                       </div>
                       <Input
                         value={(h as any)[item.field] || ''}
@@ -995,7 +1048,7 @@ const Pengaturan = () => {
                     {h.line1 && <div style={{ fontSize: `${h.line1Size || 16}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.line1}</div>}
                     {h.line2 && <div style={{ fontSize: `${h.line2Size || 14}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.line2}</div>}
                     {h.school && <div style={{ fontSize: `${h.schoolSize || 12}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.school}</div>}
-                    {h.schoolSub && <div style={{ fontSize: `${h.schoolSubSize || 10}pt`, lineHeight: '1.0' }}>{h.schoolSub}</div>}
+                    {kabupaten && <div style={{ fontSize: '10pt', lineHeight: '1.0' }}>{buildSchoolSub(kabupaten)}</div>}
                     {(h.address || h.contact) && <div style={{ fontSize: `${h.addressSize || 11}pt`, lineHeight: '1.0' }}>{h.address}{h.contact ? ` ${h.contact}` : ''}</div>}
                   </div>
                 </div>
@@ -1043,14 +1096,7 @@ const Pengaturan = () => {
           <Card>
             <CardHeader><CardTitle>Penyimpanan Data</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 rounded-lg border border-border bg-muted/50 space-y-2">
-                <div className="flex items-center gap-2">
-                  <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                  <Label className="text-sm font-medium">Lokasi Default (Desktop)</Label>
-                </div>
-                <p className="text-xs text-muted-foreground font-mono">C:\Users\{'{username}'}\AppData\Roaming\Minsa</p>
-                <p className="text-xs text-muted-foreground">Lokasi ini akan digunakan saat aplikasi dijalankan sebagai desktop app. Saat ini data tersimpan di localStorage browser.</p>
-              </div>
+              <DataPathSection />
 
               <div className="border-t border-border pt-4 space-y-3">
                 <h3 className="font-medium text-sm">Ekspor & Impor Data</h3>
