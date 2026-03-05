@@ -20,14 +20,24 @@ const TambahSurat = () => {
   const jenisSurat = data.settings.jenisSurat.find(j => j.slug === jenisSlug);
   const existingSurat = isEdit ? data.surat.find(s => s.id === editId) : null;
 
-  // Determine which biodata fields to show based on selectedBiodata
+  // Determine which biodata fields to show
   const allBiodata = getAllBiodataFields(data.settings);
   const selectedKeys = jenisSurat?.selectedBiodata;
-  // If no selectedBiodata defined (legacy), show all default fields
   const hasSelection = selectedKeys && selectedKeys.length > 0;
+
+  // Check if template has any placeholders
+  const templateHasPlaceholders = (() => {
+    if (!jenisSurat?.templateIsi) return false;
+    const knownPlaceholders = allBiodata.map(f => f.placeholder);
+    return knownPlaceholders.some(p => jenisSurat.templateIsi.includes(p));
+  })();
+
+  // If no placeholders in template AND no selectedBiodata, show no biodata fields
   const visibleFields = hasSelection
     ? allBiodata.filter(f => selectedKeys.includes(f.key))
-    : allBiodata.filter(f => !f.isCustom);
+    : templateHasPlaceholders
+      ? allBiodata.filter(f => !f.isCustom)
+      : [];
 
   const [form, setForm] = useState({
     nomorSurat: '',
@@ -111,8 +121,6 @@ const TambahSurat = () => {
   };
 
   const isMasuk = form.arah === 'masuk';
-
-  // Get custom fields that are visible
   const customVisible = visibleFields.filter(f => f.isCustom);
 
   return (
@@ -150,14 +158,10 @@ const TambahSurat = () => {
               <div><Label>Nama Lengkap *</Label><Input value={form.nama} onChange={e => setField('nama', e.target.value)} required /></div>
             )}
 
-            {(isFieldVisible('tempatLahir') || isFieldVisible('tanggalLahir')) && (
+            {isFieldVisible('tempatLahir') && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {isFieldVisible('tempatLahir') && (
-                  <div><Label>Tempat Lahir</Label><Input value={form.tempatLahir} onChange={e => setField('tempatLahir', e.target.value)} /></div>
-                )}
-                {isFieldVisible('tanggalLahir') && (
-                  <div><Label>Tanggal Lahir</Label><Input type="date" value={form.tanggalLahir} onChange={e => setField('tanggalLahir', e.target.value)} /></div>
-                )}
+                <div><Label>Tempat Lahir</Label><Input value={form.tempatLahir} onChange={e => setField('tempatLahir', e.target.value)} /></div>
+                <div><Label>Tanggal Lahir</Label><Input type="date" value={form.tanggalLahir} onChange={e => setField('tanggalLahir', e.target.value)} /></div>
               </div>
             )}
 
