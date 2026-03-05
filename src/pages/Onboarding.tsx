@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
-import { detectMadrasahInfo } from '@/lib/store';
+import { expandSchoolName, buildLine2, buildSchoolSub, parseMadrasahName } from '@/lib/store';
+import { KABUPATEN_LIST } from '@/lib/kabupaten';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,37 +14,45 @@ const Onboarding = () => {
   const navigate = useNavigate();
   const [appName, setAppName] = useState('MANAJEMEN SURAT');
   const [schoolName, setSchoolName] = useState('');
+  const [kabupatenInput, setKabupatenInput] = useState('');
+  const [kabupatenSearch, setKabupatenSearch] = useState('');
+  const [showKabupatenList, setShowKabupatenList] = useState(false);
   const [nsm, setNsm] = useState('');
   const [npsn, setNpsn] = useState('');
 
-  const madrasahInfo = detectMadrasahInfo(schoolName);
+  const madrasahInfo = parseMadrasahName(schoolName);
 
-  const getSchoolLine = (info: NonNullable<ReturnType<typeof detectMadrasahInfo>>) => {
-    const cityUpper = info.city.toUpperCase();
-    const statusStr = info.status ? ` ${info.status}` : '';
-    switch (info.baseType) {
-      case 'RA': return `RAUDHATHUL ATHFAL ${cityUpper}`;
-      case 'MI': return `MADRASAH IBTIDAIYAH${statusStr} ${cityUpper}`;
-      case 'MTS': return `MADRASAH TSANAWIYAH${statusStr} ${cityUpper}`;
-      case 'MA': return `MADRASAH ALIYAH${statusStr} ${cityUpper}`;
-      default: return '';
-    }
+  const filteredKabupaten = useMemo(() => {
+    const q = kabupatenSearch.toLowerCase();
+    if (!q) return KABUPATEN_LIST.slice(0, 20);
+    return KABUPATEN_LIST.filter(k => k.toLowerCase().includes(q)).slice(0, 30);
+  }, [kabupatenSearch]);
+
+  const handleSelectKabupaten = (k: string) => {
+    setKabupatenInput(k);
+    setKabupatenSearch(k);
+    setShowKabupatenList(false);
   };
 
   const handleSubmit = () => {
     if (!appName.trim()) { toast.error('Nama aplikasi wajib diisi'); return; }
     if (!schoolName.trim()) { toast.error('Nama sekolah wajib diisi'); return; }
 
-    const info = detectMadrasahInfo(schoolName.trim());
+    const kabupaten = kabupatenInput.trim();
+    const expandedSchool = expandSchoolName(schoolName.trim());
+    const line2 = kabupaten ? buildLine2(kabupaten) : '';
+    const schoolSub = kabupaten ? buildSchoolSub(kabupaten) : '';
 
-    const headerDefaults = info?.isMadrasah ? {
+    const headerDefaults = madrasahInfo.isMadrasah ? {
       line1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
-      line2: `KANTOR KEMENTERIAN AGAMA KOTA ${info.city.toUpperCase()}`,
-      school: getSchoolLine(info),
+      line2,
+      school: expandedSchool,
+      schoolSub,
     } : {
       line1: '',
-      line2: '',
-      school: '',
+      line2,
+      school: schoolName.trim().toUpperCase(),
+      schoolSub,
     };
 
     updateData(d => ({
@@ -52,6 +61,7 @@ const Onboarding = () => {
         ...d.settings,
         appName: appName.trim(),
         schoolName: schoolName.trim(),
+        kabupaten,
         nsm: nsm.trim(),
         npsn: npsn.trim(),
         onboarded: true,
@@ -93,14 +103,44 @@ const Onboarding = () => {
               className="mt-1"
             />
             <p className="text-xs text-muted-foreground mt-1">Akan ditampilkan di header dan dashboard.</p>
-            {madrasahInfo && schoolName.trim() && (
+            {madrasahInfo.isMadrasah && schoolName.trim() && (
               <div className="mt-2 p-2 rounded-md bg-primary/10 border border-primary/20">
-                <p className="text-sm text-primary font-medium">
-                  {madrasahInfo.isMadrasah
-                    ? `Kementerian Agama Kota ${madrasahInfo.city}`
-                    : 'Kementerian Pendidikan'}
-                </p>
-                <p className="text-xs text-muted-foreground">Terdeteksi otomatis dari nama sekolah</p>
+                <p className="text-xs font-mono text-primary">{expandSchoolName(schoolName)}</p>
+                <p className="text-xs text-muted-foreground">Nama lengkap otomatis</p>
+              </div>
+            )}
+          </div>
+
+          {/* Kabupaten picker */}
+          <div className="relative">
+            <Label>Kabupaten / Kota</Label>
+            <Input
+              value={kabupatenSearch}
+              onChange={e => { setKabupatenSearch(e.target.value); setKabupatenInput(e.target.value); setShowKabupatenList(true); }}
+              onFocus={() => setShowKabupatenList(true)}
+              placeholder="cth: Kota Langsa"
+              className="mt-1"
+              autoComplete="off"
+            />
+            <p className="text-xs text-muted-foreground mt-1">Digunakan sebagai placeholder {'{kabupaten}'} di template.</p>
+            {showKabupatenList && filteredKabupaten.length > 0 && (
+              <div className="absolute z-50 left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                {filteredKabupaten.map(k => (
+                  <button
+                    key={k}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                    onMouseDown={() => handleSelectKabupaten(k)}
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
+            )}
+            {kabupatenInput && (
+              <div className="mt-1 p-2 rounded-md bg-muted/50 text-xs space-y-0.5">
+                <div><span className="text-muted-foreground">Header baris 2:</span> <span className="font-medium">{buildLine2(kabupatenInput)}</span></div>
+                <div><span className="text-muted-foreground">Sub header:</span> <span className="font-medium">{buildSchoolSub(kabupatenInput)}</span></div>
               </div>
             )}
           </div>

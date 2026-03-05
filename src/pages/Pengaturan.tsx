@@ -1,7 +1,8 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
-import { generateId, slugify, JenisSurat, COLOR_THEMES, ColorTheme, DEFAULT_BIODATA, BiodataField, getAllBiodataFields, generateBiodataTableHtml } from '@/lib/store';
+import { generateId, slugify, JenisSurat, COLOR_THEMES, ColorTheme, DEFAULT_BIODATA, BiodataField, getAllBiodataFields, generateBiodataTableHtml, expandSchoolName, buildLine2, buildSchoolSub, parseMadrasahName } from '@/lib/store';
+import { KABUPATEN_LIST } from '@/lib/kabupaten';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -208,6 +209,41 @@ const Pengaturan = () => {
   const [editKepalaNip, setEditKepalaNip] = useState('');
 
   const h = data.settings.suratHeader;
+  const kabupaten = data.settings.kabupaten || '';
+  const [kabupatenSearch, setKabupatenSearch] = useState(kabupaten);
+  const [showKabupatenList, setShowKabupatenList] = useState(false);
+
+  const filteredKabupaten = useMemo(() => {
+    const q = kabupatenSearch.toLowerCase();
+    if (!q) return KABUPATEN_LIST.slice(0, 20);
+    return KABUPATEN_LIST.filter(k => k.toLowerCase().includes(q)).slice(0, 30);
+  }, [kabupatenSearch]);
+
+  const handleSelectKabupaten = (k: string) => {
+    setKabupatenSearch(k);
+    setShowKabupatenList(false);
+    updateData(d => ({ ...d, settings: { ...d.settings, kabupaten: k } }));
+    // Auto-update header line2 and schoolSub
+    const newLine2 = buildLine2(k);
+    const newSchoolSub = buildSchoolSub(k);
+    updateData(d => ({
+      ...d,
+      settings: {
+        ...d.settings,
+        kabupaten: k,
+        suratHeader: { ...d.settings.suratHeader, line2: newLine2, schoolSub: newSchoolSub },
+      },
+    }));
+  };
+
+  // When schoolName changes in header tab, auto-expand school
+  const handleSchoolNameAutoExpand = () => {
+    const sn = data.settings.schoolName;
+    if (!sn.trim()) return;
+    const expanded = expandSchoolName(sn);
+    updateHeader('school', expanded);
+  };
+
   const updateHeader = (field: string, value: string | number) => {
     updateData(d => ({
       ...d, settings: { ...d.settings, suratHeader: { ...d.settings.suratHeader, [field]: value } },
@@ -366,6 +402,13 @@ const Pengaturan = () => {
     const text = e.clipboardData.getData('text/plain');
     const content = html || text;
     document.execCommand('insertHTML', false, content);
+  };
+
+  const handleTemplateKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      document.execCommand('insertHTML', false, '&nbsp;&nbsp;&nbsp;&nbsp;');
+    }
   };
 
   // Custom biodata CRUD
@@ -653,14 +696,20 @@ const Pengaturan = () => {
                   <div>
                     <Label>Template Isi Surat</Label>
                     <p className="text-xs text-muted-foreground mb-1">
-                      Placeholder: {'{nama}'}, {'{tempat_lahir}'}, {'{tanggal_lahir}'}, {'{jenis_kelamin}'}, {'{kelas}'}, {'{no_induk}'}, {'{nisn}'}, {'{nama_orang_tua}'}, {'{alamat}'}, {'{tahun_ajaran}'}
+                      Placeholder: {'{nama}'}, {'{tempat_lahir}'}, {'{tanggal_lahir}'}, {'{jenis_kelamin}'}, {'{kelas}'}, {'{no_induk}'}, {'{nisn}'}, {'{nama_orang_tua}'}, {'{alamat}'}, {'{tahun_ajaran}'}, <strong>{'{kabupaten}'}</strong>
                     </p>
                     <p className="text-xs text-muted-foreground mb-2">Anda bisa copy-paste langsung dari MS Word ke area di bawah ini.</p>
+                    <style>{`
+                      .template-editor p { margin-top: 0; margin-bottom: 6pt; line-height: 1.5; }
+                      .template-editor div { margin-top: 0; margin-bottom: 6pt; line-height: 1.5; }
+                    `}</style>
                     <div
                       ref={templateRef}
                       contentEditable
-                      className="min-h-[200px] border border-input rounded-md p-3 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring overflow-auto prose prose-sm max-w-none"
+                      className="template-editor min-h-[200px] border border-input rounded-md p-3 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring overflow-auto prose prose-sm max-w-none"
+                      style={{ lineHeight: '1.5' }}
                       onPaste={(e) => handleTemplatePaste(e, false)}
+                      onKeyDown={handleTemplateKeyDown}
                       onBlur={(e) => setJenisIsi(e.currentTarget.innerHTML)}
                       dangerouslySetInnerHTML={{ __html: jenisIsi }}
                     />
@@ -691,8 +740,10 @@ const Pengaturan = () => {
                     <div
                       ref={editTemplateRef}
                       contentEditable
-                      className="min-h-[200px] border border-input rounded-md p-3 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring overflow-auto prose prose-sm max-w-none"
+                      className="template-editor min-h-[200px] border border-input rounded-md p-3 bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring overflow-auto prose prose-sm max-w-none"
+                      style={{ lineHeight: '1.5' }}
                       onPaste={(e) => handleTemplatePaste(e, true)}
+                      onKeyDown={handleTemplateKeyDown}
                       onBlur={(e) => setEditIsi(e.currentTarget.innerHTML)}
                       dangerouslySetInnerHTML={{ __html: editIsi }}
                     />
@@ -830,30 +881,101 @@ const Pengaturan = () => {
                 </div>
               </div>
 
-              {[
-                { label: 'Baris 1', field: 'line1', sizeField: 'line1Size', defaultSize: 16 },
-                { label: 'Baris 2', field: 'line2', sizeField: 'line2Size', defaultSize: 14 },
-                { label: 'Nama Sekolah', field: 'school', sizeField: 'schoolSize', defaultSize: 12 },
-                { label: 'Alamat', field: 'address', sizeField: 'addressSize', defaultSize: 11 },
-                { label: 'Kontak', field: 'contact', sizeField: 'contactSize', defaultSize: 11 },
-              ].map(item => (
-                <div key={item.field} className="flex gap-2 items-end">
-                  <div className="flex-1">
-                    <Label>{item.label}</Label>
-                    <Input value={(h as any)[item.field]} onChange={e => updateHeader(item.field, e.target.value)} />
+              {/* Kabupaten Picker */}
+              <div className="border border-border rounded-lg p-3 space-y-2">
+                <Label className="font-medium">Kabupaten / Kota <span className="text-xs text-muted-foreground font-normal">(placeholder {'{kabupaten}'})</span></Label>
+                <div className="relative">
+                  <Input
+                    value={kabupatenSearch}
+                    onChange={e => { setKabupatenSearch(e.target.value); setShowKabupatenList(true); }}
+                    onFocus={() => setShowKabupatenList(true)}
+                    onBlur={() => setTimeout(() => setShowKabupatenList(false), 150)}
+                    placeholder="Ketik untuk mencari kabupaten/kota..."
+                    autoComplete="off"
+                  />
+                  {showKabupatenList && filteredKabupaten.length > 0 && (
+                    <div className="absolute z-50 left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                      {filteredKabupaten.map(k => (
+                        <button
+                          key={k}
+                          type="button"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          onMouseDown={() => handleSelectKabupaten(k)}
+                        >
+                          {k}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {kabupatenSearch && (
+                  <div className="text-xs text-muted-foreground space-y-0.5 pt-1">
+                    <div>Baris 2: <span className="font-medium text-foreground">{buildLine2(kabupatenSearch)}</span></div>
+                    <div>Sub sekolah: <span className="font-medium text-foreground">{buildSchoolSub(kabupatenSearch)}</span></div>
                   </div>
-                  <div className="w-20">
-                    <Select
-                      value={String((h as any)[item.sizeField] || item.defaultSize)}
-                      onValueChange={v => updateHeader(item.sizeField, parseInt(v))}
-                    >
-                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {FONT_SIZE_OPTIONS.map(s => (
-                          <SelectItem key={s} value={String(s)}>{s}pt</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                )}
+              </div>
+
+              {[
+                { label: 'Baris 1', field: 'line1', sizeField: 'line1Size', defaultSize: 16, hint: '' },
+                { label: 'Baris 2 (auto dari kabupaten)', field: 'line2', sizeField: 'line2Size', defaultSize: 14, hint: 'KANTOR KEMENTERIAN AGAMA {KABUPATEN}' },
+                { label: 'Nama Sekolah (auto dari nama sekolah)', field: 'school', sizeField: 'schoolSize', defaultSize: 12, hint: '' },
+                { label: 'Sub Sekolah (auto dari kabupaten)', field: 'schoolSub', sizeField: 'schoolSubSize', defaultSize: 10, hint: 'Kementerian Agama {Kabupaten}' },
+                { label: 'Alamat', field: 'address', sizeField: 'addressSize', defaultSize: 11, hint: '' },
+                { label: 'Kontak', field: 'contact', sizeField: 'contactSize', defaultSize: 11, hint: '' },
+              ].map(item => (
+                <div key={item.field}>
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <Label>{item.label}</Label>
+                        {item.field === 'school' && (
+                          <button
+                            type="button"
+                            className="text-xs text-primary hover:underline"
+                            onClick={handleSchoolNameAutoExpand}
+                          >
+                            Auto dari nama sekolah
+                          </button>
+                        )}
+                        {item.field === 'line2' && kabupatenSearch && (
+                          <button
+                            type="button"
+                            className="text-xs text-primary hover:underline"
+                            onClick={() => updateHeader('line2', buildLine2(kabupatenSearch))}
+                          >
+                            Reset dari kabupaten
+                          </button>
+                        )}
+                        {item.field === 'schoolSub' && kabupatenSearch && (
+                          <button
+                            type="button"
+                            className="text-xs text-primary hover:underline"
+                            onClick={() => updateHeader('schoolSub', buildSchoolSub(kabupatenSearch))}
+                          >
+                            Reset dari kabupaten
+                          </button>
+                        )}
+                      </div>
+                      <Input
+                        value={(h as any)[item.field] || ''}
+                        onChange={e => updateHeader(item.field, e.target.value)}
+                        placeholder={item.hint}
+                      />
+                    </div>
+                    <div className="w-20">
+                      <Select
+                        value={String((h as any)[item.sizeField] || item.defaultSize)}
+                        onValueChange={v => updateHeader(item.sizeField, parseInt(v))}
+                      >
+                        <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {FONT_SIZE_OPTIONS.map(s => (
+                            <SelectItem key={s} value={String(s)}>{s}pt</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
               ))}
@@ -873,6 +995,7 @@ const Pengaturan = () => {
                     {h.line1 && <div style={{ fontSize: `${h.line1Size || 16}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.line1}</div>}
                     {h.line2 && <div style={{ fontSize: `${h.line2Size || 14}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.line2}</div>}
                     {h.school && <div style={{ fontSize: `${h.schoolSize || 12}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.school}</div>}
+                    {h.schoolSub && <div style={{ fontSize: `${h.schoolSubSize || 10}pt`, lineHeight: '1.0' }}>{h.schoolSub}</div>}
                     {(h.address || h.contact) && <div style={{ fontSize: `${h.addressSize || 11}pt`, lineHeight: '1.0' }}>{h.address}{h.contact ? ` ${h.contact}` : ''}</div>}
                   </div>
                 </div>

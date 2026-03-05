@@ -71,6 +71,7 @@ export interface SuratHeader {
   line1: string;
   line2: string;
   school: string;
+  schoolSub: string;
   address: string;
   contact: string;
   logoUrl: string;
@@ -78,6 +79,7 @@ export interface SuratHeader {
   line1Size?: number;
   line2Size?: number;
   schoolSize?: number;
+  schoolSubSize?: number;
   addressSize?: number;
   contactSize?: number;
 }
@@ -97,6 +99,7 @@ export interface AppSettings {
   customBiodata?: BiodataField[];
   appName: string;
   schoolName: string;
+  kabupaten: string;
   customLogo: string;
   customKemenagLogo: string;
   onboarded: boolean;
@@ -111,6 +114,7 @@ const DEFAULT_HEADER: SuratHeader = {
   line1: '',
   line2: '',
   school: '',
+  schoolSub: '',
   address: '',
   contact: '',
   logoUrl: '',
@@ -118,6 +122,7 @@ const DEFAULT_HEADER: SuratHeader = {
   line1Size: 16,
   line2Size: 14,
   schoolSize: 12,
+  schoolSubSize: 10,
   addressSize: 11,
   contactSize: 11,
 };
@@ -145,6 +150,7 @@ const DEFAULT_DATA: AppData = {
     customBiodata: [],
     appName: 'MANAJEMEN SURAT',
     schoolName: 'NAMA SEKOLAH',
+    kabupaten: '',
     customLogo: '',
     customKemenagLogo: '',
     onboarded: false,
@@ -165,13 +171,20 @@ export function loadData(): AppData {
         settings: {
           ...DEFAULT_DATA.settings,
           ...parsed.settings,
-          suratHeader: { ...DEFAULT_HEADER, ...(parsed.settings?.suratHeader || {}) },
+          // suratHeader merged below
           customBiodata: parsed.settings?.customBiodata || [],
           appName: parsed.settings?.appName || 'MANAJEMEN SURAT',
           schoolName: parsed.settings?.schoolName || 'NAMA SEKOLAH',
+          kabupaten: parsed.settings?.kabupaten || '',
           customLogo: parsed.settings?.customLogo || '',
           customKemenagLogo: parsed.settings?.customKemenagLogo || '',
           onboarded: parsed.settings?.onboarded ?? false,
+          suratHeader: {
+            ...DEFAULT_HEADER,
+            ...(parsed.settings?.suratHeader || {}),
+            schoolSub: parsed.settings?.suratHeader?.schoolSub || '',
+            schoolSubSize: parsed.settings?.suratHeader?.schoolSubSize || 10,
+          },
         },
         surat: (parsed.surat || []).map((s: any) => ({ ...s, arah: s.arah || 'keluar', extraFields: s.extraFields || {} })),
       };
@@ -273,22 +286,48 @@ export interface MadrasahInfo {
   status: 'NEGERI' | 'SWASTA' | '';
 }
 
+export interface MadrasahParsed extends MadrasahInfo {
+  nomor: string;   // e.g. "1" from "MIN 1 Langsa"
+  cityRaw: string; // city as typed (e.g. "Langsa")
+}
+
 export function detectMadrasahInfo(schoolName: string): MadrasahInfo | null {
-  if (!schoolName.trim()) return null;
+  return parseMadrasahName(schoolName);
+}
+
+/**
+ * Parse madrasah name like "MIN 1 Langsa" into components.
+ * Handles: MI, MIN, MIS, MTs, MTsN, MTsS, MAN, MAS, MA, RA
+ * Pattern: {TYPE} [{number}] {city}
+ */
+export function parseMadrasahName(schoolName: string): MadrasahParsed {
+  const empty: MadrasahParsed = { type: '', city: '', cityRaw: '', nomor: '', isMadrasah: false, baseType: '', status: '' };
+  if (!schoolName.trim()) return empty;
+
   const sorted = [...MADRASAH_TYPES].sort((a, b) => b.length - a.length);
   for (const type of sorted) {
     const regex = new RegExp(`^${type}\\s+`, 'i');
     if (regex.test(schoolName.trim())) {
-      const rest = schoolName.trim().replace(regex, '');
-      const city = rest.replace(/^\d+\s*/, '').trim();
-      if (city) {
-        // Determine baseType
+      const rest = schoolName.trim().replace(regex, '').trim();
+
+      // Extract optional leading number
+      const nomorMatch = rest.match(/^(\d+)\s*(.*)$/);
+      const nomor = nomorMatch ? nomorMatch[1] : '';
+      const cityRaw = nomorMatch ? nomorMatch[2].trim() : rest;
+      const city = cityRaw.toUpperCase();
+
+      if (cityRaw) {
         const upper = type.toUpperCase();
         let baseType: MadrasahInfo['baseType'] = '';
         if (upper === 'RA') baseType = 'RA';
         else if (upper === 'MI' || upper === 'MIN' || upper === 'MIS') baseType = 'MI';
-        else if (upper === 'MTS' || upper === 'MTSN' || upper === 'MTSS') baseType = 'MTS';
+        else if (['MTS', 'MTSN', 'MTSS', 'MTS', 'MTSN'].includes(upper) ||
+                 type.toUpperCase() === 'MTS' || type.toUpperCase() === 'MTSN' ||
+                 type.toUpperCase() === 'MTSS' || type.toUpperCase() === 'MTS') baseType = 'MTS';
         else if (upper === 'MA' || upper === 'MAN' || upper === 'MAS') baseType = 'MA';
+
+        // MTs variants
+        if (type === 'MTs' || type === 'MTsN' || type === 'MTsS') baseType = 'MTS';
 
         // Determine status (N=NEGERI, S=SWASTA)
         let status: MadrasahInfo['status'] = '';
@@ -296,9 +335,52 @@ export function detectMadrasahInfo(schoolName: string): MadrasahInfo | null {
         if (lastChar === 'N' && type.length > 2) status = 'NEGERI';
         else if (lastChar === 'S' && type.length > 2) status = 'SWASTA';
 
-        return { type, city, isMadrasah: true, baseType, status };
+        return { type, city, cityRaw, nomor, isMadrasah: true, baseType, status };
       }
     }
   }
-  return { type: '', city: '', isMadrasah: false, baseType: '', status: '' };
+  return empty;
+}
+
+/**
+ * Build the full expanded school name for the header.
+ * "MIN 1 Langsa" → "MADRASAH IBTIDAIYAH NEGERI 1 LANGSA"
+ */
+export function expandSchoolName(schoolName: string): string {
+  const info = parseMadrasahName(schoolName);
+  if (!info.isMadrasah || !info.cityRaw) return schoolName.toUpperCase();
+
+  let base = '';
+  switch (info.baseType) {
+    case 'RA': base = 'RAUDHATHUL ATHFAL'; break;
+    case 'MI': base = 'MADRASAH IBTIDAIYAH'; break;
+    case 'MTS': base = 'MADRASAH TSANAWIYAH'; break;
+    case 'MA': base = 'MADRASAH ALIYAH'; break;
+    default: base = info.type.toUpperCase();
+  }
+
+  const statusStr = info.status ? ` ${info.status}` : '';
+  const nomorStr = info.nomor ? ` ${info.nomor}` : '';
+  return `${base}${statusStr}${nomorStr} ${info.city}`;
+}
+
+/**
+ * Build line2 for header: "KANTOR KEMENTERIAN AGAMA {KABUPATEN UPPERCASE}"
+ */
+export function buildLine2(kabupaten: string): string {
+  if (!kabupaten.trim()) return '';
+  return `KANTOR KEMENTERIAN AGAMA ${kabupaten.toUpperCase()}`;
+}
+
+/**
+ * Build schoolSub text: "Kementerian Agama {Kabupaten Title Case}"
+ */
+export function buildSchoolSub(kabupaten: string): string {
+  if (!kabupaten.trim()) return '';
+  const titleCase = kabupaten
+    .toLowerCase()
+    .split(' ')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ');
+  return `Kementerian Agama ${titleCase}`;
 }
