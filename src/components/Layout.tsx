@@ -6,6 +6,7 @@ import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import kemenagLogo from '@/assets/kemenag-logo.png';
+import { detectMadrasahInfo } from '@/lib/store';
 
 export function Layout() {
   const { data, updateData, setTheme } = useApp();
@@ -18,7 +19,13 @@ export function Layout() {
   };
 
   const headerLogoSrc = data.settings.customKemenagLogo || kemenagLogo;
-  const schoolName = data.settings.schoolName || 'MIN 1 Langsa';
+  const schoolName = data.settings.schoolName || 'NAMA SEKOLAH';
+  const isDefault = schoolName === 'NAMA SEKOLAH';
+
+  const madrasahInfo = detectMadrasahInfo(schoolName);
+  const subtitleText = !isDefault && madrasahInfo
+    ? (madrasahInfo.isMadrasah ? `Kementerian Agama Kota ${madrasahInfo.city}` : 'Kementerian Pendidikan')
+    : '';
 
   return (
     <SidebarProvider>
@@ -28,10 +35,12 @@ export function Layout() {
           <header className="h-14 flex items-center justify-between border-b border-border px-3 gap-2">
             <div className="flex items-center gap-2">
               <SidebarTrigger />
-              <img src={headerLogoSrc} alt="Kemenag" className="h-8 w-8 object-contain" />
+              {!isDefault && <img src={headerLogoSrc} alt="Logo" className="h-8 w-8 object-contain" />}
               <div className="hidden sm:block">
                 <div className="font-bold text-sm text-foreground leading-tight">{schoolName.toUpperCase()}</div>
-                <div className="text-[10px] text-muted-foreground leading-tight">Kementerian Agama Kota {schoolName.replace(/^(RA|MI|MIN|MIS|MTS|MTs|MTsN|MTSN|MTSS|MTsS|MA|MAN|MAS)\s+\d*\s*/i, '').trim() || 'Langsa'}</div>
+                {subtitleText && (
+                  <div className="text-[10px] text-muted-foreground leading-tight">{subtitleText}</div>
+                )}
               </div>
             </div>
             <div className="flex items-center gap-2">

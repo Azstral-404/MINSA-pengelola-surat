@@ -9,14 +9,16 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, ListChecks, UserRound, CalendarDays, FileText, Contact, Building, Palette, Database, User, LogOut } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Trash2, Plus, Upload, Moon, Sun, ImagePlus, Download, FolderOpen, ListChecks, CalendarDays, FileText, Contact, Building, Palette, Database, User, LogOut, Pencil, Check, X } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useSidebar } from '@/components/ui/sidebar';
+import kemenagLogo from '@/assets/kemenag-logo.png';
 
+const FONT_SIZE_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 8); // 8-20
 
 const BiodataChecklistSection = ({
   selectedBiodata,
@@ -98,41 +100,45 @@ const BiodataChecklistSection = ({
     const el = editorRef.current;
     if (!el) return;
     if (selectedBiodata.length === 0) { toast.error('Pilih biodata terlebih dahulu'); return; }
-    const html = generateBiodataTableHtml(selectedBiodata, allFields);
 
+    // Merge logic: find existing biodata lines and extract their keys
+    const currentHtml = el.innerHTML;
+    const existingKeys: string[] = [];
+    for (const field of allFields) {
+      if (currentHtml.includes(field.placeholder)) {
+        existingKeys.push(field.key);
+      }
+    }
+
+    // Merge: combine existing + newly selected, deduplicate
+    const mergedKeys = [...new Set([...existingKeys, ...selectedBiodata])];
+
+    // Remove existing biodata block if present (lines with placeholders)
+    let cleanHtml = currentHtml;
+    for (const field of allFields) {
+      // Remove divs containing this field's placeholder
+      const divRegex = new RegExp(`<div>[^<]*${field.placeholder.replace(/[{}]/g, '\\$&')}[^<]*</div>`, 'gi');
+      cleanHtml = cleanHtml.replace(divRegex, '');
+    }
+
+    // Generate merged biodata HTML
+    const html = generateBiodataTableHtml(mergedKeys, allFields);
+
+    // Set cleaned content + insert at cursor or end
+    el.innerHTML = cleanHtml;
     el.focus();
     const sel = window.getSelection();
     if (!sel) return;
 
-    const saved = savedRangeRef.current;
-    if (saved) {
-      const startNode = getNodeFromPath(saved.startPath, el);
-      const endNode = getNodeFromPath(saved.endPath, el);
-      if (startNode && endNode) {
-        try {
-          const range = document.createRange();
-          range.setStart(startNode, Math.min(saved.startOffset, startNode.textContent?.length || 0));
-          range.setEnd(endNode, Math.min(saved.endOffset, endNode.textContent?.length || 0));
-          sel.removeAllRanges();
-          sel.addRange(range);
-        } catch {
-          const range = document.createRange();
-          range.selectNodeContents(el);
-          range.collapse(false);
-          sel.removeAllRanges();
-          sel.addRange(range);
-        }
-      }
-    } else {
-      const range = document.createRange();
-      range.selectNodeContents(el);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
-    }
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    range.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(range);
 
     document.execCommand('insertHTML', false, html);
     savedRangeRef.current = null;
+    // Do NOT reset selectedBiodata - keep ticks
     toast.success('Tabel biodata disisipkan');
   };
 
@@ -175,7 +181,7 @@ const Pengaturan = () => {
   const akunKemenagLogoRef = useRef<HTMLInputElement>(null);
   const isDark = data.settings.theme === 'dark';
 
-  const defaultTab = searchParams.get('tab') || 'kepala';
+  const defaultTab = searchParams.get('tab') || 'akun';
 
   const [nipInput, setNipInput] = useState('');
   const [namaInput, setNamaInput] = useState('');
@@ -195,9 +201,15 @@ const Pengaturan = () => {
 
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'kepala' | 'tahun' | 'jenis' | 'biodata'; id: string; label: string } | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [addConfirm, setAddConfirm] = useState<{ type: string; action: () => void } | null>(null);
+
+  // Kepala edit state
+  const [editingKepalaId, setEditingKepalaId] = useState<string | null>(null);
+  const [editKepalaName, setEditKepalaName] = useState('');
+  const [editKepalaNip, setEditKepalaNip] = useState('');
 
   const h = data.settings.suratHeader;
-  const updateHeader = (field: string, value: string) => {
+  const updateHeader = (field: string, value: string | number) => {
     updateData(d => ({
       ...d, settings: { ...d.settings, suratHeader: { ...d.settings.suratHeader, [field]: value } },
     }));
@@ -225,21 +237,49 @@ const Pengaturan = () => {
   };
 
   // Kepala Madrasah
-  const addKepala = () => {
+  const doAddKepala = () => {
     if (!namaInput.trim()) { toast.error('Nama wajib diisi'); return; }
+    // Duplicate check
+    if (data.settings.kepalaMadrasah.some(k => k.nama.toLowerCase() === namaInput.trim().toLowerCase())) {
+      toast.error('Kepala Madrasah dengan nama yang sama sudah ada');
+      return;
+    }
     updateData(d => ({
       ...d, settings: { ...d.settings, kepalaMadrasah: [...d.settings.kepalaMadrasah, { id: generateId(), nip: nipInput.trim(), nama: namaInput.trim() }] },
     }));
     setNipInput(''); setNamaInput('');
     toast.success('Kepala Madrasah ditambahkan');
   };
+  const addKepala = () => {
+    if (!namaInput.trim()) { toast.error('Nama wajib diisi'); return; }
+    setAddConfirm({ type: 'Kepala Madrasah', action: doAddKepala });
+  };
+
   const deleteKepala = (id: string) => {
     updateData(d => ({ ...d, settings: { ...d.settings, kepalaMadrasah: d.settings.kepalaMadrasah.filter(k => k.id !== id) } }));
     toast.success('Dihapus');
   };
 
+  const startEditKepala = (k: { id: string; nama: string; nip: string }) => {
+    setEditingKepalaId(k.id);
+    setEditKepalaName(k.nama);
+    setEditKepalaNip(k.nip);
+  };
+  const saveEditKepala = () => {
+    if (!editingKepalaId || !editKepalaName.trim()) return;
+    updateData(d => ({
+      ...d, settings: {
+        ...d.settings, kepalaMadrasah: d.settings.kepalaMadrasah.map(k =>
+          k.id === editingKepalaId ? { ...k, nama: editKepalaName.trim(), nip: editKepalaNip.trim() } : k
+        )
+      },
+    }));
+    setEditingKepalaId(null);
+    toast.success('Kepala Madrasah diperbarui');
+  };
+
   // Tahun Ajaran
-  const addTahun = () => {
+  const doAddTahun = () => {
     if (!tahunInput.trim()) { toast.error('Tahun ajaran wajib diisi'); return; }
     updateData(d => ({
       ...d, settings: { ...d.settings, tahunAjaran: [...d.settings.tahunAjaran, { id: generateId(), label: tahunInput.trim() }] },
@@ -247,13 +287,17 @@ const Pengaturan = () => {
     setTahunInput('');
     toast.success('Tahun ajaran ditambahkan');
   };
+  const addTahun = () => {
+    if (!tahunInput.trim()) { toast.error('Tahun ajaran wajib diisi'); return; }
+    setAddConfirm({ type: 'Tahun Ajaran', action: doAddTahun });
+  };
   const deleteTahun = (id: string) => {
     updateData(d => ({ ...d, settings: { ...d.settings, tahunAjaran: d.settings.tahunAjaran.filter(t => t.id !== id) } }));
     toast.success('Dihapus');
   };
 
   // Jenis Surat
-  const addJenisSurat = () => {
+  const doAddJenisSurat = () => {
     if (!jenisLabel.trim()) { toast.error('Label wajib diisi'); return; }
     if (!jenisIsi.trim()) { toast.error('Template isi wajib diisi'); return; }
     const slug = slugify(jenisLabel.trim());
@@ -268,6 +312,11 @@ const Pengaturan = () => {
     }));
     setJenisLabel(''); setJenisJudul(''); setJenisIsi(''); setNewSelectedBiodata([]);
     toast.success('Jenis surat ditambahkan');
+  };
+  const addJenisSurat = () => {
+    if (!jenisLabel.trim()) { toast.error('Label wajib diisi'); return; }
+    if (!jenisIsi.trim()) { toast.error('Template isi wajib diisi'); return; }
+    setAddConfirm({ type: 'Jenis Surat', action: doAddJenisSurat });
   };
   const deleteJenisSurat = (id: string) => {
     updateData(d => ({
@@ -362,41 +411,165 @@ const Pengaturan = () => {
     window.location.reload();
   };
 
+  const logoSrc = h.logoUrl || (data.settings.customKemenagLogo || '');
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
       <Tabs defaultValue={defaultTab} key={sidebarState}>
         <TabsList className="flex flex-wrap w-full h-auto gap-1 bg-muted p-1 rounded-lg">
-          <TabsTrigger value="kepala" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><UserRound className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Kepala</span></TabsTrigger>
+          <TabsTrigger value="akun" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><User className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Akun</span></TabsTrigger>
           <TabsTrigger value="tahun" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><CalendarDays className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Tahun Ajaran</span></TabsTrigger>
           <TabsTrigger value="surat" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><FileText className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Jenis Surat</span></TabsTrigger>
           <TabsTrigger value="biodata" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Contact className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Biodata</span></TabsTrigger>
           <TabsTrigger value="header" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Building className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Header</span></TabsTrigger>
           <TabsTrigger value="tema" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Palette className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Tema</span></TabsTrigger>
           <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Database className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Data</span></TabsTrigger>
-          <TabsTrigger value="akun" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><User className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Akun</span></TabsTrigger>
         </TabsList>
 
-        {/* Kepala Madrasah */}
-        <TabsContent value="kepala">
+        {/* Akun & Identitas + Kepala Madrasah */}
+        <TabsContent value="akun">
           <Card>
-            <CardHeader><CardTitle>Kepala Madrasah</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div><Label>NIP</Label><Input value={nipInput} onChange={e => setNipInput(e.target.value)} placeholder="NIP" /></div>
-                <div><Label>Nama</Label><Input value={namaInput} onChange={e => setNamaInput(e.target.value)} placeholder="Nama lengkap" /></div>
+            <CardHeader><CardTitle>Akun & Identitas</CardTitle></CardHeader>
+            <CardContent className="space-y-6">
+              <input type="file" accept="image/*" ref={akunLogoRef} className="hidden" onChange={(e) => handleAkunLogoUpload(e, 'customLogo')} />
+              <input type="file" accept="image/*" ref={akunKemenagLogoRef} className="hidden" onChange={(e) => handleAkunLogoUpload(e, 'customKemenagLogo')} />
+
+              {/* App Name */}
+              <div>
+                <Label>Nama Aplikasi (Sidebar)</Label>
+                <Input
+                  value={data.settings.appName}
+                  onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, appName: e.target.value } }))}
+                  placeholder="MANAJEMEN SURAT"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Ditampilkan di sidebar sebagai judul.</p>
               </div>
-              <Button onClick={addKepala} size="sm"><Plus className="mr-1 h-4 w-4" />Tambah</Button>
-              {data.settings.kepalaMadrasah.length > 0 && (
-                <div className="space-y-2 mt-4">
-                  {data.settings.kepalaMadrasah.map(k => (
-                    <div key={k.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                      <div><div className="font-medium text-sm">{k.nama}</div><div className="text-xs text-muted-foreground">NIP: {k.nip}</div></div>
-                      <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'kepala', id: k.id, label: k.nama })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+
+              {/* School Name */}
+              <div>
+                <Label>Nama Sekolah</Label>
+                <Input
+                  value={data.settings.schoolName}
+                  onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, schoolName: e.target.value } }))}
+                  placeholder="NAMA SEKOLAH"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Ditampilkan di header dan dashboard.</p>
+              </div>
+
+              {/* Logos */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <Label className="font-medium">Logo Sidebar</Label>
+                  <div className="flex items-center gap-3">
+                    {data.settings.customLogo ? (
+                      <img src={data.settings.customLogo} alt="Logo" className="w-14 h-14 object-contain border rounded" />
+                    ) : (
+                      <div className="w-14 h-14 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                        <ImagePlus className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <Button variant="outline" size="sm" onClick={() => akunLogoRef.current?.click()}>
+                        <Upload className="mr-1 h-4 w-4" />{data.settings.customLogo ? 'Ganti' : 'Upload'}
+                      </Button>
+                      {data.settings.customLogo && (
+                        <Button variant="ghost" size="sm" onClick={() => updateData(d => ({ ...d, settings: { ...d.settings, customLogo: '' } }))}>
+                          Hapus
+                        </Button>
+                      )}
                     </div>
-                  ))}
+                  </div>
                 </div>
-              )}
+
+                <div className="border border-border rounded-lg p-4 space-y-3">
+                  <Label className="font-medium">Logo Kementerian Agama</Label>
+                  <div className="flex items-center gap-3">
+                    {data.settings.customKemenagLogo ? (
+                      <img src={data.settings.customKemenagLogo} alt="Kemenag" className="w-14 h-14 object-contain border rounded" />
+                    ) : (
+                      <div className="w-14 h-14 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
+                        <ImagePlus className="h-5 w-5" />
+                      </div>
+                    )}
+                    <div className="flex flex-col gap-1">
+                      <Button variant="outline" size="sm" onClick={() => akunKemenagLogoRef.current?.click()}>
+                        <Upload className="mr-1 h-4 w-4" />{data.settings.customKemenagLogo ? 'Ganti' : 'Upload'}
+                      </Button>
+                      {data.settings.customKemenagLogo && (
+                        <Button variant="ghost" size="sm" onClick={() => updateData(d => ({ ...d, settings: { ...d.settings, customKemenagLogo: '' } }))}>
+                          Hapus
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* NSM / NPSN */}
+              <div className="border-t border-border pt-4">
+                <h3 className="font-medium text-sm mb-3">Identitas Sekolah</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>NSM</Label>
+                    <Input
+                      value={data.settings.nsm}
+                      onChange={e => { if (/^\d*$/.test(e.target.value)) updateData(d => ({ ...d, settings: { ...d.settings, nsm: e.target.value } })); }}
+                      placeholder="NSM" inputMode="numeric"
+                    />
+                  </div>
+                  <div>
+                    <Label>NPSN</Label>
+                    <Input
+                      value={data.settings.npsn}
+                      onChange={e => { if (/^\d*$/.test(e.target.value)) updateData(d => ({ ...d, settings: { ...d.settings, npsn: e.target.value } })); }}
+                      placeholder="NPSN" inputMode="numeric"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Kepala Madrasah Section */}
+              <div className="border-t border-border pt-4">
+                <h3 className="font-medium text-sm mb-3">Kepala Madrasah</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><Label>NIP</Label><Input value={nipInput} onChange={e => setNipInput(e.target.value)} placeholder="NIP" /></div>
+                  <div><Label>Nama</Label><Input value={namaInput} onChange={e => setNamaInput(e.target.value)} placeholder="Nama lengkap" /></div>
+                </div>
+                <Button onClick={addKepala} size="sm" className="mt-3"><Plus className="mr-1 h-4 w-4" />Tambah</Button>
+                {data.settings.kepalaMadrasah.length > 0 && (
+                  <div className="space-y-2 mt-4">
+                    {data.settings.kepalaMadrasah.map(k => (
+                      <div key={k.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
+                        {editingKepalaId === k.id ? (
+                          <div className="flex-1 flex items-center gap-2">
+                            <Input value={editKepalaNip} onChange={e => setEditKepalaNip(e.target.value)} placeholder="NIP" className="w-36" />
+                            <Input value={editKepalaName} onChange={e => setEditKepalaName(e.target.value)} placeholder="Nama" className="flex-1" />
+                            <Button variant="ghost" size="icon" onClick={saveEditKepala}><Check className="h-4 w-4 text-primary" /></Button>
+                            <Button variant="ghost" size="icon" onClick={() => setEditingKepalaId(null)}><X className="h-4 w-4" /></Button>
+                          </div>
+                        ) : (
+                          <>
+                            <div><div className="font-medium text-sm">{k.nama}</div><div className="text-xs text-muted-foreground">NIP: {k.nip}</div></div>
+                            <div className="flex gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => startEditKepala(k)}><Pencil className="h-4 w-4" /></Button>
+                              <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'kepala', id: k.id, label: k.nama })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Logout */}
+              <div className="border-t border-border pt-4">
+                <Button variant="destructive" onClick={() => setShowLogoutConfirm(true)}>
+                  <LogOut className="mr-2 h-4 w-4" /> Logout (Reset Data)
+                </Button>
+                <p className="text-xs text-muted-foreground mt-1">Menghapus semua data lokal dan mengembalikan ke pengaturan awal.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -623,9 +796,7 @@ const Pengaturan = () => {
                   <Label className="text-xs whitespace-nowrap">Ukuran: {h.logoSize || 22}mm</Label>
                   <Slider
                     value={[h.logoSize || 22]}
-                    onValueChange={([v]) => updateData(d => ({
-                      ...d, settings: { ...d.settings, suratHeader: { ...d.settings.suratHeader, logoSize: v } },
-                    }))}
+                    onValueChange={([v]) => updateHeader('logoSize', v)}
                     min={10}
                     max={40}
                     step={1}
@@ -633,11 +804,55 @@ const Pengaturan = () => {
                   />
                 </div>
               </div>
-              <div><Label>Baris 1</Label><Input value={h.line1} onChange={e => updateHeader('line1', e.target.value)} /></div>
-              <div><Label>Baris 2</Label><Input value={h.line2} onChange={e => updateHeader('line2', e.target.value)} /></div>
-              <div><Label>Nama Sekolah</Label><Input value={h.school} onChange={e => updateHeader('school', e.target.value)} /></div>
-              <div><Label>Alamat</Label><Input value={h.address} onChange={e => updateHeader('address', e.target.value)} /></div>
-              <div><Label>Kontak</Label><Input value={h.contact} onChange={e => updateHeader('contact', e.target.value)} /></div>
+
+              {/* Header fields with font size dropdowns */}
+              {[
+                { label: 'Baris 1', field: 'line1', sizeField: 'line1Size', defaultSize: 16 },
+                { label: 'Baris 2', field: 'line2', sizeField: 'line2Size', defaultSize: 14 },
+                { label: 'Nama Sekolah', field: 'school', sizeField: 'schoolSize', defaultSize: 12 },
+                { label: 'Alamat', field: 'address', sizeField: 'addressSize', defaultSize: 11 },
+                { label: 'Kontak', field: 'contact', sizeField: 'contactSize', defaultSize: 11 },
+              ].map(item => (
+                <div key={item.field} className="flex gap-2 items-end">
+                  <div className="flex-1">
+                    <Label>{item.label}</Label>
+                    <Input value={(h as any)[item.field]} onChange={e => updateHeader(item.field, e.target.value)} />
+                  </div>
+                  <div className="w-20">
+                    <Select
+                      value={String((h as any)[item.sizeField] || item.defaultSize)}
+                      onValueChange={v => updateHeader(item.sizeField, parseInt(v))}
+                    >
+                      <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        {FONT_SIZE_OPTIONS.map(s => (
+                          <SelectItem key={s} value={String(s)}>{s}pt</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ))}
+
+              {/* Live Preview */}
+              <div className="border-t border-border pt-4 mt-4">
+                <Label className="text-sm font-medium mb-2 block">Preview Header</Label>
+                <div className="bg-white text-black border rounded-lg p-6 mx-auto" style={{ maxWidth: '210mm', fontFamily: "'Times New Roman', serif" }}>
+                  <div style={{ textAlign: 'center', borderBottom: '3px solid black', paddingBottom: '8px', position: 'relative' }}>
+                    {logoSrc && (
+                      <img
+                        src={logoSrc}
+                        alt="Logo"
+                        style={{ position: 'absolute', left: '0', bottom: '5px', width: `${h.logoSize || 22}mm`, height: `${h.logoSize || 22}mm`, objectFit: 'contain' }}
+                      />
+                    )}
+                    {h.line1 && <div style={{ fontSize: `${h.line1Size || 16}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.line1}</div>}
+                    {h.line2 && <div style={{ fontSize: `${h.line2Size || 14}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.line2}</div>}
+                    {h.school && <div style={{ fontSize: `${h.schoolSize || 12}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.school}</div>}
+                    {(h.address || h.contact) && <div style={{ fontSize: `${h.addressSize || 11}pt`, lineHeight: '1.0' }}>{h.address}{h.contact ? ` ${h.contact}` : ''}</div>}
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -728,105 +943,6 @@ const Pengaturan = () => {
             </CardContent>
           </Card>
         </TabsContent>
-
-        {/* Akun Tab */}
-        <TabsContent value="akun">
-          <Card>
-            <CardHeader><CardTitle>Akun & Identitas</CardTitle></CardHeader>
-            <CardContent className="space-y-6">
-              <input type="file" accept="image/*" ref={akunLogoRef} className="hidden" onChange={(e) => handleAkunLogoUpload(e, 'customLogo')} />
-              <input type="file" accept="image/*" ref={akunKemenagLogoRef} className="hidden" onChange={(e) => handleAkunLogoUpload(e, 'customKemenagLogo')} />
-
-              {/* App Name */}
-              <div>
-                <Label>Nama Aplikasi (Sidebar)</Label>
-                <Input
-                  value={data.settings.appName}
-                  onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, appName: e.target.value } }))}
-                  placeholder="MINSA"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Ditampilkan di sidebar sebagai judul.</p>
-              </div>
-
-              {/* School Name */}
-              <div>
-                <Label>Nama Sekolah</Label>
-                <Input
-                  value={data.settings.schoolName}
-                  onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, schoolName: e.target.value } }))}
-                  placeholder="MIN 1 Langsa"
-                />
-                <p className="text-xs text-muted-foreground mt-1">Ditampilkan di header dan dashboard.</p>
-              </div>
-
-              {/* Logos */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="border border-border rounded-lg p-4 space-y-3">
-                  <Label className="font-medium">Logo Sidebar (MINSA)</Label>
-                  <div className="flex items-center gap-3">
-                    {data.settings.customLogo ? (
-                      <img src={data.settings.customLogo} alt="Logo" className="w-14 h-14 object-contain border rounded" />
-                    ) : (
-                      <div className="w-14 h-14 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
-                        <ImagePlus className="h-5 w-5" />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1">
-                      <Button variant="outline" size="sm" onClick={() => akunLogoRef.current?.click()}>
-                        <Upload className="mr-1 h-4 w-4" />{data.settings.customLogo ? 'Ganti' : 'Upload'}
-                      </Button>
-                      {data.settings.customLogo && (
-                        <Button variant="ghost" size="sm" onClick={() => updateData(d => ({ ...d, settings: { ...d.settings, customLogo: '' } }))}>
-                          Hapus
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="border border-border rounded-lg p-4 space-y-3">
-                  <Label className="font-medium">Logo Kementerian Agama</Label>
-                  <div className="flex items-center gap-3">
-                    {data.settings.customKemenagLogo ? (
-                      <img src={data.settings.customKemenagLogo} alt="Kemenag" className="w-14 h-14 object-contain border rounded" />
-                    ) : (
-                      <div className="w-14 h-14 border-2 border-dashed rounded flex items-center justify-center text-muted-foreground">
-                        <ImagePlus className="h-5 w-5" />
-                      </div>
-                    )}
-                    <div className="flex flex-col gap-1">
-                      <Button variant="outline" size="sm" onClick={() => akunKemenagLogoRef.current?.click()}>
-                        <Upload className="mr-1 h-4 w-4" />{data.settings.customKemenagLogo ? 'Ganti' : 'Upload'}
-                      </Button>
-                      {data.settings.customKemenagLogo && (
-                        <Button variant="ghost" size="sm" onClick={() => updateData(d => ({ ...d, settings: { ...d.settings, customKemenagLogo: '' } }))}>
-                          Hapus
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* NSM / NPSN */}
-              <div className="border-t border-border pt-4">
-                <h3 className="font-medium text-sm mb-3">Identitas Sekolah</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><Label>NSM</Label><Input value={data.settings.nsm} onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, nsm: e.target.value } }))} placeholder="NSM" /></div>
-                  <div><Label>NPSN</Label><Input value={data.settings.npsn} onChange={e => updateData(d => ({ ...d, settings: { ...d.settings, npsn: e.target.value } }))} placeholder="NPSN" /></div>
-                </div>
-              </div>
-
-              {/* Logout */}
-              <div className="border-t border-border pt-4">
-                <Button variant="destructive" onClick={() => setShowLogoutConfirm(true)}>
-                  <LogOut className="mr-2 h-4 w-4" /> Logout (Reset Data)
-                </Button>
-                <p className="text-xs text-muted-foreground mt-1">Menghapus semua data lokal dan mengembalikan ke pengaturan awal.</p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
       </Tabs>
 
       {/* Shared delete confirmation dialog */}
@@ -835,6 +951,16 @@ const Pengaturan = () => {
         onOpenChange={(open) => !open && setDeleteTarget(null)}
         description={getDeleteDescription()}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* Add confirmation dialog */}
+      <ConfirmDialog
+        open={!!addConfirm}
+        onOpenChange={(open) => !open && setAddConfirm(null)}
+        title="Konfirmasi Tambah"
+        description={addConfirm ? `Apakah Anda yakin ingin menambahkan ${addConfirm.type} baru?` : ''}
+        confirmLabel="Tambah"
+        onConfirm={() => { addConfirm?.action(); setAddConfirm(null); }}
       />
 
       {/* Logout confirmation */}
