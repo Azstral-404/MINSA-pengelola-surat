@@ -62,7 +62,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         }}
       >
         {/* Header / KOP */}
-        <div style={{ textAlign: 'center', borderBottom: '3px solid black', paddingBottom: '8px', marginBottom: '20px', position: 'relative' }}>
+        <div style={{ textAlign: 'center', borderBottom: '3px solid black', paddingBottom: '16px', marginBottom: '24px', position: 'relative' }}>
           {logoSrc && (
             <img
               src={logoSrc}
@@ -78,8 +78,8 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         </div>
 
         {/* Judul */}
-        <div style={{ textAlign: 'center', marginBottom: '0', marginTop: '0' }}>
-          <div style={{ fontWeight: 'bold', textDecoration: 'underline', fontSize: '14pt' }}>
+        <div style={{ textAlign: 'center', marginBottom: '8px', marginTop: '0' }}>
+          <div style={{ fontWeight: 'bold', textDecoration: 'underline', fontSize: '14pt', textUnderlineOffset: '4px' }}>
             {jenisSurat.templateJudul || jenisSurat.label.toUpperCase()}
           </div>
         </div>
@@ -125,7 +125,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           <div style={{ marginTop: '40px', paddingLeft: '100mm' }}>
             <div>{cityForTtd}, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
             <div>Kepala Madrasah,</div>
-            <div style={{ marginTop: '60px', fontWeight: 'bold', textDecoration: 'underline' }}>{kepala.nama}</div>
+            <div style={{ marginTop: '60px', fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>{kepala.nama}</div>
             {kepala.nip && <div>NIP. {kepala.nip}</div>}
           </div>
         )}

@@ -119,6 +119,14 @@ function createSplash() {
     font-family: 'Segoe UI', system-ui, sans-serif;
     overflow: hidden; user-select: none;
   }
+  .bg-logo {
+    position: absolute;
+    width: 320px; height: auto;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0.08;
+    pointer-events: none;
+  }
   .glow {
     position: absolute;
     width: 400px; height: 400px; border-radius: 50%;
@@ -169,6 +177,7 @@ function createSplash() {
 </style>
 </head>
 <body>
+<img class="bg-logo" src="file://${ICON_PATH.replace(/\\/g, '/')}" alt="" aria-hidden="true" />
 <div class="glow"></div>
 <img class="logo" src="file://${ICON_PATH.replace(/\\/g, '/')}" alt="MINSA" />
 <div class="name">MINSA SURAT MANAGER</div>

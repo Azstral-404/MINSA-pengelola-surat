@@ -60,6 +60,24 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
         overflow: 'hidden',
       }}
     >
+      {/* Logo as background watermark */}
+      <img
+        src={minsaLogo}
+        alt=""
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          width: '380px',
+          height: 'auto',
+          objectFit: 'contain',
+          opacity: 0.06,
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          pointerEvents: 'none',
+        }}
+      />
+
       {/* Glow effect */}
       <div
         style={{
