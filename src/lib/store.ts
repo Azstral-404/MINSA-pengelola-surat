@@ -10,8 +10,7 @@ export interface BiodataField {
 
 export const DEFAULT_BIODATA: BiodataField[] = [
   { key: 'nama', label: 'Nama', placeholder: '{nama}', inputType: 'text' },
-  { key: 'tempatLahir', label: 'Tempat Lahir', placeholder: '{tempat_lahir}', inputType: 'text' },
-  { key: 'tanggalLahir', label: 'Tanggal Lahir', placeholder: '{tanggal_lahir}', inputType: 'date' },
+  { key: 'tempatLahir', label: 'Tempat/Tanggal Lahir', placeholder: '{tempat_lahir}, {tanggal_lahir}', inputType: 'text' },
   { key: 'jenisKelamin', label: 'Jenis Kelamin', placeholder: '{jenis_kelamin}', inputType: 'select' },
   { key: 'kelas', label: 'Kelas', placeholder: '{kelas}', inputType: 'select' },
   { key: 'noInduk', label: 'No. Induk', placeholder: '{no_induk}', inputType: 'text' },
@@ -266,7 +265,15 @@ export function generateBiodataTableHtml(selectedKeys: string[], allFields: Biod
 
 export const MADRASAH_TYPES = ['RA', 'MI', 'MIN', 'MIS', 'MTS', 'MTs', 'MTsN', 'MTSN', 'MTSS', 'MTsS', 'MA', 'MAN', 'MAS'];
 
-export function detectMadrasahInfo(schoolName: string): { type: string; city: string; isMadrasah: boolean } | null {
+export interface MadrasahInfo {
+  type: string;
+  city: string;
+  isMadrasah: boolean;
+  baseType: 'RA' | 'MI' | 'MTS' | 'MA' | '';
+  status: 'NEGERI' | 'SWASTA' | '';
+}
+
+export function detectMadrasahInfo(schoolName: string): MadrasahInfo | null {
   if (!schoolName.trim()) return null;
   const sorted = [...MADRASAH_TYPES].sort((a, b) => b.length - a.length);
   for (const type of sorted) {
@@ -274,9 +281,24 @@ export function detectMadrasahInfo(schoolName: string): { type: string; city: st
     if (regex.test(schoolName.trim())) {
       const rest = schoolName.trim().replace(regex, '');
       const city = rest.replace(/^\d+\s*/, '').trim();
-      if (city) return { type, city, isMadrasah: true };
+      if (city) {
+        // Determine baseType
+        const upper = type.toUpperCase();
+        let baseType: MadrasahInfo['baseType'] = '';
+        if (upper === 'RA') baseType = 'RA';
+        else if (upper === 'MI' || upper === 'MIN' || upper === 'MIS') baseType = 'MI';
+        else if (upper === 'MTS' || upper === 'MTSN' || upper === 'MTSS') baseType = 'MTS';
+        else if (upper === 'MA' || upper === 'MAN' || upper === 'MAS') baseType = 'MA';
+
+        // Determine status (N=NEGERI, S=SWASTA)
+        let status: MadrasahInfo['status'] = '';
+        const lastChar = type.slice(-1).toUpperCase();
+        if (lastChar === 'N' && type.length > 2) status = 'NEGERI';
+        else if (lastChar === 'S' && type.length > 2) status = 'SWASTA';
+
+        return { type, city, isMadrasah: true, baseType, status };
+      }
     }
   }
-  // Not a madrasah
-  return { type: '', city: '', isMadrasah: false };
+  return { type: '', city: '', isMadrasah: false, baseType: '', status: '' };
 }

@@ -16,6 +16,7 @@ import { loadData, saveData } from '@/lib/store';
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useSidebar } from '@/components/ui/sidebar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import kemenagLogo from '@/assets/kemenag-logo.png';
 
 const FONT_SIZE_OPTIONS = Array.from({ length: 13 }, (_, i) => i + 8); // 8-20
@@ -55,15 +56,6 @@ const BiodataChecklistSection = ({
     return path;
   };
 
-  const getNodeFromPath = (path: number[], container: Node): Node | null => {
-    let current: Node = container;
-    for (const index of path) {
-      if (!current.childNodes[index]) return null;
-      current = current.childNodes[index];
-    }
-    return current;
-  };
-
   const captureSelection = () => {
     const el = editorRef.current;
     if (!el) return;
@@ -92,7 +84,7 @@ const BiodataChecklistSection = ({
     };
   }, [editorRef]);
 
-  const handleInsertMouseDown = (e: React.MouseEvent) => {
+  const handleInsertMouseDown = () => {
     captureSelection();
   };
 
@@ -113,18 +105,15 @@ const BiodataChecklistSection = ({
     // Merge: combine existing + newly selected, deduplicate
     const mergedKeys = [...new Set([...existingKeys, ...selectedBiodata])];
 
-    // Remove existing biodata block if present (lines with placeholders)
+    // Remove existing biodata block if present
     let cleanHtml = currentHtml;
     for (const field of allFields) {
-      // Remove divs containing this field's placeholder
       const divRegex = new RegExp(`<div>[^<]*${field.placeholder.replace(/[{}]/g, '\\$&')}[^<]*</div>`, 'gi');
       cleanHtml = cleanHtml.replace(divRegex, '');
     }
 
-    // Generate merged biodata HTML
     const html = generateBiodataTableHtml(mergedKeys, allFields);
 
-    // Set cleaned content + insert at cursor or end
     el.innerHTML = cleanHtml;
     el.focus();
     const sel = window.getSelection();
@@ -138,7 +127,8 @@ const BiodataChecklistSection = ({
 
     document.execCommand('insertHTML', false, html);
     savedRangeRef.current = null;
-    // Do NOT reset selectedBiodata - keep ticks
+    // Reset selectedBiodata after insert
+    onSelectedChange([]);
     toast.success('Tabel biodata disisipkan');
   };
 
@@ -154,16 +144,24 @@ const BiodataChecklistSection = ({
       </div>
       <p className="text-xs text-muted-foreground">Centang field yang ingin ditampilkan pada form surat dan dokumen output.</p>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {allFields.map(field => (
-          <label key={field.key} className="flex items-center gap-2 text-sm cursor-pointer p-1.5 rounded hover:bg-muted/50">
-            <Checkbox
-              checked={selectedBiodata.includes(field.key)}
-              onCheckedChange={() => toggleKey(field.key)}
-            />
-            <span>{field.label}</span>
-            {field.isCustom && <span className="text-[10px] px-1 py-0.5 rounded bg-accent text-accent-foreground">Kustom</span>}
-          </label>
-        ))}
+        {allFields.map(field => {
+          const orderIndex = selectedBiodata.indexOf(field.key);
+          return (
+            <label key={field.key} className="flex items-center gap-2 text-sm cursor-pointer p-1.5 rounded hover:bg-muted/50">
+              <Checkbox
+                checked={selectedBiodata.includes(field.key)}
+                onCheckedChange={() => toggleKey(field.key)}
+              />
+              <span>{field.label}</span>
+              {orderIndex >= 0 && (
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground">
+                  {orderIndex + 1}
+                </span>
+              )}
+              {field.isCustom && <span className="text-[10px] px-1 py-0.5 rounded bg-accent text-accent-foreground">Kustom</span>}
+            </label>
+          );
+        })}
       </div>
     </div>
   );
@@ -202,6 +200,7 @@ const Pengaturan = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ type: 'kepala' | 'tahun' | 'jenis' | 'biodata'; id: string; label: string } | null>(null);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [addConfirm, setAddConfirm] = useState<{ type: string; action: () => void } | null>(null);
+  const [editConfirm, setEditConfirm] = useState<{ type: string; action: () => void } | null>(null);
 
   // Kepala edit state
   const [editingKepalaId, setEditingKepalaId] = useState<string | null>(null);
@@ -239,7 +238,6 @@ const Pengaturan = () => {
   // Kepala Madrasah
   const doAddKepala = () => {
     if (!namaInput.trim()) { toast.error('Nama wajib diisi'); return; }
-    // Duplicate check
     if (data.settings.kepalaMadrasah.some(k => k.nama.toLowerCase() === namaInput.trim().toLowerCase())) {
       toast.error('Kepala Madrasah dengan nama yang sama sudah ada');
       return;
@@ -265,7 +263,7 @@ const Pengaturan = () => {
     setEditKepalaName(k.nama);
     setEditKepalaNip(k.nip);
   };
-  const saveEditKepala = () => {
+  const doSaveEditKepala = () => {
     if (!editingKepalaId || !editKepalaName.trim()) return;
     updateData(d => ({
       ...d, settings: {
@@ -276,6 +274,10 @@ const Pengaturan = () => {
     }));
     setEditingKepalaId(null);
     toast.success('Kepala Madrasah diperbarui');
+  };
+  const saveEditKepala = () => {
+    if (!editingKepalaId || !editKepalaName.trim()) return;
+    setEditConfirm({ type: 'Kepala Madrasah', action: doSaveEditKepala });
   };
 
   // Tahun Ajaran
@@ -329,7 +331,7 @@ const Pengaturan = () => {
     setEditingJenis(js.id); setEditLabel(js.label); setEditJudul(js.templateJudul); setEditIsi(js.templateIsi);
     setEditSelectedBiodata(js.selectedBiodata || []);
   };
-  const saveEditJenis = () => {
+  const doSaveEditJenis = () => {
     if (!editingJenis) return;
     updateData(d => ({
       ...d, settings: { ...d.settings, jenisSurat: d.settings.jenisSurat.map(j =>
@@ -338,6 +340,10 @@ const Pengaturan = () => {
     }));
     setEditingJenis(null);
     toast.success('Template diperbarui');
+  };
+  const saveEditJenis = () => {
+    if (!editingJenis) return;
+    setEditConfirm({ type: 'Jenis Surat', action: doSaveEditJenis });
   };
 
   const handleDocxImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -413,6 +419,8 @@ const Pengaturan = () => {
 
   const logoSrc = h.logoUrl || (data.settings.customKemenagLogo || '');
 
+  const kepala = data.settings.kepalaMadrasah;
+
   return (
     <div className="space-y-6 w-full">
       <h1 className="text-xl font-bold text-foreground">Pengaturan</h1>
@@ -427,15 +435,14 @@ const Pengaturan = () => {
           <TabsTrigger value="penyimpanan" className="flex items-center gap-1.5 flex-1 min-w-0 px-2.5 py-1.5"><Database className="h-4 w-4 shrink-0" /><span className="hidden lg:inline truncate">Data</span></TabsTrigger>
         </TabsList>
 
-        {/* Akun & Identitas + Kepala Madrasah */}
-        <TabsContent value="akun">
+        {/* Akun & Identitas */}
+        <TabsContent value="akun" className="space-y-4">
           <Card>
             <CardHeader><CardTitle>Akun & Identitas</CardTitle></CardHeader>
             <CardContent className="space-y-6">
               <input type="file" accept="image/*" ref={akunLogoRef} className="hidden" onChange={(e) => handleAkunLogoUpload(e, 'customLogo')} />
               <input type="file" accept="image/*" ref={akunKemenagLogoRef} className="hidden" onChange={(e) => handleAkunLogoUpload(e, 'customKemenagLogo')} />
 
-              {/* App Name */}
               <div>
                 <Label>Nama Aplikasi (Sidebar)</Label>
                 <Input
@@ -446,7 +453,6 @@ const Pengaturan = () => {
                 <p className="text-xs text-muted-foreground mt-1">Ditampilkan di sidebar sebagai judul.</p>
               </div>
 
-              {/* School Name */}
               <div>
                 <Label>Nama Sekolah</Label>
                 <Input
@@ -457,7 +463,6 @@ const Pengaturan = () => {
                 <p className="text-xs text-muted-foreground mt-1">Ditampilkan di header dan dashboard.</p>
               </div>
 
-              {/* Logos */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="border border-border rounded-lg p-4 space-y-3">
                   <Label className="font-medium">Logo Sidebar</Label>
@@ -506,7 +511,6 @@ const Pengaturan = () => {
                 </div>
               </div>
 
-              {/* NSM / NPSN */}
               <div className="border-t border-border pt-4">
                 <h3 className="font-medium text-sm mb-3">Identitas Sekolah</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -529,40 +533,6 @@ const Pengaturan = () => {
                 </div>
               </div>
 
-              {/* Kepala Madrasah Section */}
-              <div className="border-t border-border pt-4">
-                <h3 className="font-medium text-sm mb-3">Kepala Madrasah</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div><Label>NIP</Label><Input value={nipInput} onChange={e => setNipInput(e.target.value)} placeholder="NIP" /></div>
-                  <div><Label>Nama</Label><Input value={namaInput} onChange={e => setNamaInput(e.target.value)} placeholder="Nama lengkap" /></div>
-                </div>
-                <Button onClick={addKepala} size="sm" className="mt-3"><Plus className="mr-1 h-4 w-4" />Tambah</Button>
-                {data.settings.kepalaMadrasah.length > 0 && (
-                  <div className="space-y-2 mt-4">
-                    {data.settings.kepalaMadrasah.map(k => (
-                      <div key={k.id} className="flex items-center justify-between p-3 bg-muted rounded-md">
-                        {editingKepalaId === k.id ? (
-                          <div className="flex-1 flex items-center gap-2">
-                            <Input value={editKepalaNip} onChange={e => setEditKepalaNip(e.target.value)} placeholder="NIP" className="w-36" />
-                            <Input value={editKepalaName} onChange={e => setEditKepalaName(e.target.value)} placeholder="Nama" className="flex-1" />
-                            <Button variant="ghost" size="icon" onClick={saveEditKepala}><Check className="h-4 w-4 text-primary" /></Button>
-                            <Button variant="ghost" size="icon" onClick={() => setEditingKepalaId(null)}><X className="h-4 w-4" /></Button>
-                          </div>
-                        ) : (
-                          <>
-                            <div><div className="font-medium text-sm">{k.nama}</div><div className="text-xs text-muted-foreground">NIP: {k.nip}</div></div>
-                            <div className="flex gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => startEditKepala(k)}><Pencil className="h-4 w-4" /></Button>
-                              <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'kepala', id: k.id, label: k.nama })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
               {/* Logout */}
               <div className="border-t border-border pt-4">
                 <Button variant="destructive" onClick={() => setShowLogoutConfirm(true)}>
@@ -570,6 +540,62 @@ const Pengaturan = () => {
                 </Button>
                 <p className="text-xs text-muted-foreground mt-1">Menghapus semua data lokal dan mengembalikan ke pengaturan awal.</p>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Kepala Madrasah - Separate Card */}
+          <Card>
+            <CardHeader><CardTitle>Kepala Madrasah</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              {kepala.length === 0 ? (
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">Belum ada Kepala Madrasah. Tambahkan satu untuk ditampilkan di surat.</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div><Label>Nama</Label><Input value={namaInput} onChange={e => setNamaInput(e.target.value)} placeholder="Nama lengkap" /></div>
+                    <div><Label>NIP</Label><Input value={nipInput} onChange={e => setNipInput(e.target.value)} placeholder="NIP (opsional)" /></div>
+                  </div>
+                  <Button onClick={addKepala} size="sm"><Plus className="mr-1 h-4 w-4" />Tambah</Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {kepala.map(k => (
+                    <div key={k.id}>
+                      {editingKepalaId === k.id ? (
+                        <div className="border border-border rounded-lg p-4 space-y-3">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div><Label>Nama</Label><Input value={editKepalaName} onChange={e => setEditKepalaName(e.target.value)} placeholder="Nama" /></div>
+                            <div><Label>NIP</Label><Input value={editKepalaNip} onChange={e => setEditKepalaNip(e.target.value)} placeholder="NIP" /></div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={saveEditKepala}><Check className="mr-1 h-4 w-4" />Simpan</Button>
+                            <Button variant="ghost" size="sm" onClick={() => setEditingKepalaId(null)}><X className="mr-1 h-4 w-4" />Batal</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-4 p-4 border border-border rounded-lg bg-muted/30">
+                          <Avatar className="h-14 w-14">
+                            <AvatarFallback className="text-lg font-bold bg-primary/10 text-primary">
+                              {k.nama.charAt(0).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="font-semibold text-foreground text-base">{k.nama}</div>
+                            <div className="text-sm text-muted-foreground">NIP: {k.nip || '-'}</div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button variant="outline" size="sm" onClick={() => startEditKepala(k)}>
+                              <Pencil className="mr-1 h-4 w-4" />Edit
+                            </Button>
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteTarget({ type: 'kepala', id: k.id, label: k.nama })}>
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -604,7 +630,6 @@ const Pengaturan = () => {
             <CardContent className="space-y-4">
               <input type="file" accept=".docx" ref={fileInputRef} className="hidden" onChange={handleDocxImport} />
 
-              {/* Format Nomor Surat */}
               <div className="border border-border rounded-lg p-4 space-y-2">
                 <Label>Format Nomor Surat</Label>
                 <p className="text-xs text-muted-foreground">
@@ -805,7 +830,6 @@ const Pengaturan = () => {
                 </div>
               </div>
 
-              {/* Header fields with font size dropdowns */}
               {[
                 { label: 'Baris 1', field: 'line1', sizeField: 'line1Size', defaultSize: 16 },
                 { label: 'Baris 2', field: 'line2', sizeField: 'line2Size', defaultSize: 14 },
@@ -961,6 +985,16 @@ const Pengaturan = () => {
         description={addConfirm ? `Apakah Anda yakin ingin menambahkan ${addConfirm.type} baru?` : ''}
         confirmLabel="Tambah"
         onConfirm={() => { addConfirm?.action(); setAddConfirm(null); }}
+      />
+
+      {/* Edit confirmation dialog */}
+      <ConfirmDialog
+        open={!!editConfirm}
+        onOpenChange={(open) => !open && setEditConfirm(null)}
+        title="Konfirmasi Edit"
+        description={editConfirm ? `Apakah Anda yakin ingin menyimpan perubahan pada ${editConfirm.type}?` : ''}
+        confirmLabel="Simpan"
+        onConfirm={() => { editConfirm?.action(); setEditConfirm(null); }}
       />
 
       {/* Logout confirmation */}

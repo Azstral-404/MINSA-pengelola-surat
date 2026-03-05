@@ -18,11 +18,33 @@ const Onboarding = () => {
 
   const madrasahInfo = detectMadrasahInfo(schoolName);
 
+  const getSchoolLine = (info: NonNullable<ReturnType<typeof detectMadrasahInfo>>) => {
+    const cityUpper = info.city.toUpperCase();
+    const statusStr = info.status ? ` ${info.status}` : '';
+    switch (info.baseType) {
+      case 'RA': return `RAUDHATHUL ATHFAL ${cityUpper}`;
+      case 'MI': return `MADRASAH IBTIDAIYAH${statusStr} ${cityUpper}`;
+      case 'MTS': return `MADRASAH TSANAWIYAH${statusStr} ${cityUpper}`;
+      case 'MA': return `MADRASAH ALIYAH${statusStr} ${cityUpper}`;
+      default: return '';
+    }
+  };
+
   const handleSubmit = () => {
     if (!appName.trim()) { toast.error('Nama aplikasi wajib diisi'); return; }
     if (!schoolName.trim()) { toast.error('Nama sekolah wajib diisi'); return; }
 
     const info = detectMadrasahInfo(schoolName.trim());
+
+    const headerDefaults = info?.isMadrasah ? {
+      line1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
+      line2: `KANTOR KEMENTERIAN AGAMA KOTA ${info.city.toUpperCase()}`,
+      school: getSchoolLine(info),
+    } : {
+      line1: '',
+      line2: '',
+      school: '',
+    };
 
     updateData(d => ({
       ...d,
@@ -33,12 +55,10 @@ const Onboarding = () => {
         nsm: nsm.trim(),
         npsn: npsn.trim(),
         onboarded: true,
-        ...(info?.isMadrasah ? {
-          suratHeader: {
-            ...d.settings.suratHeader,
-            line2: `KANTOR KEMENTERIAN AGAMA KOTA ${info.city.toUpperCase()}`,
-          }
-        } : {}),
+        suratHeader: {
+          ...d.settings.suratHeader,
+          ...headerDefaults,
+        },
       },
     }));
     toast.success('Selamat datang!');

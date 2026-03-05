@@ -9,58 +9,6 @@ import { ArrowLeft, MoreVertical, Printer, Trash2, Pencil, FileDown } from 'luci
 import { toast } from 'sonner';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 
-// Convert all images in the cloned element to base64
-async function inlineImages(el: HTMLElement): Promise<void> {
-  const imgs = el.querySelectorAll('img');
-  await Promise.all(Array.from(imgs).map(img => new Promise<void>((resolve) => {
-    if (img.src.startsWith('data:')) { resolve(); return; }
-    const canvas = document.createElement('canvas');
-    const image = new Image();
-    image.crossOrigin = 'anonymous';
-    image.onload = () => {
-      canvas.width = image.naturalWidth;
-      canvas.height = image.naturalHeight;
-      canvas.getContext('2d')?.drawImage(image, 0, 0);
-      try { img.src = canvas.toDataURL('image/png'); } catch {}
-      resolve();
-    };
-    image.onerror = () => resolve();
-    image.src = img.src;
-  })));
-}
-
-// Inline computed styles recursively
-function inlineComputedStyles(source: Element, target: Element) {
-  const computed = window.getComputedStyle(source);
-  (target as HTMLElement).style.cssText = computed.cssText;
-  const sourceChildren = source.children;
-  const targetChildren = target.children;
-  for (let i = 0; i < sourceChildren.length && i < targetChildren.length; i++) {
-    inlineComputedStyles(sourceChildren[i], targetChildren[i]);
-  }
-}
-
-async function openPrintWindow(el: HTMLElement, title: string): Promise<Window | null> {
-  // Clone and inline styles
-  const clone = el.cloneNode(true) as HTMLElement;
-  inlineComputedStyles(el, clone);
-  await inlineImages(clone);
-
-  const w = window.open('', '_blank');
-  if (!w) return null;
-
-  w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
-<style>
-@page { size: A4; margin: 0; }
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body { margin: 0; font-family: 'Times New Roman', serif; }
-@media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
-</style>
-</head><body>${clone.outerHTML}</body></html>`);
-  w.document.close();
-  return w;
-}
-
 const PreviewSurat = () => {
   const { jenisSlug, id } = useParams<{ jenisSlug: string; id: string }>();
   const [searchParams] = useSearchParams();
@@ -91,23 +39,41 @@ const PreviewSurat = () => {
     navigate(`/surat/${jenisSlug}`);
   };
 
-  const handlePrint = async () => {
+  const captureA4 = async () => {
     const el = document.getElementById('a4-print-area');
-    if (!el) return;
-    const w = await openPrintWindow(el, 'Cetak Surat');
+    if (!el) return null;
+    const html2canvas = (await import('html2canvas')).default;
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+    });
+    return canvas;
+  };
+
+  const handlePrint = async () => {
+    const canvas = await captureA4();
+    if (!canvas) return;
+    const imgData = canvas.toDataURL('image/png');
+    const w = window.open('', '_blank');
     if (!w) return;
-    w.focus();
-    setTimeout(() => { w.print(); w.close(); }, 500);
+    w.document.write(`<!DOCTYPE html><html><head><title>Cetak Surat</title>
+<style>@page{size:A4;margin:0}*{margin:0;padding:0}body{margin:0}img{width:210mm;height:auto;display:block}</style>
+</head><body><img src="${imgData}" onload="window.print();window.close()"/></body></html>`);
+    w.document.close();
   };
 
   const handleExportPdf = async () => {
-    const el = document.getElementById('a4-print-area');
-    if (!el) return;
-    const w = await openPrintWindow(el, `${surat.nama} - PDF`);
-    if (!w) return;
-    w.focus();
-    setTimeout(() => { w.print(); }, 500);
-    toast.info('Pilih "Save as PDF" pada dialog print untuk menyimpan sebagai PDF');
+    const canvas = await captureA4();
+    if (!canvas) return;
+    const { jsPDF } = await import('jspdf');
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = 210;
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`${surat.nama || 'surat'}.pdf`);
+    toast.success('PDF berhasil diunduh');
   };
 
   return (
