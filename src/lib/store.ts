@@ -76,6 +76,11 @@ export interface SuratHeader {
   contact: string;
   logoUrl: string;
   logoSize: number;
+  line1Size?: number;
+  line2Size?: number;
+  schoolSize?: number;
+  addressSize?: number;
+  contactSize?: number;
 }
 
 export interface AppSettings {
@@ -104,14 +109,26 @@ export interface AppData {
 }
 
 const DEFAULT_HEADER: SuratHeader = {
-  line1: 'KEMENTERIAN AGAMA REPUBLIK INDONESIA',
-  line2: 'KANTOR KEMENTERIAN AGAMA KOTA LANGSA',
-  school: 'MADRASAH IBTIDAIYAH NEGERI 1 LANGSA',
-  address: 'Jln.Medan - Banda Aceh Gp.Teungoh Langsa Kota',
-  contact: 'Email : minsa1959@gmail.com',
+  line1: '',
+  line2: '',
+  school: '',
+  address: '',
+  contact: '',
   logoUrl: '',
   logoSize: 22,
+  line1Size: 16,
+  line2Size: 14,
+  schoolSize: 12,
+  addressSize: 11,
+  contactSize: 11,
 };
+
+function detectSystemTheme(): ThemeName {
+  if (typeof window !== 'undefined' && window.matchMedia?.('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+  return 'light';
+}
 
 const DEFAULT_DATA: AppData = {
   settings: {
@@ -123,12 +140,12 @@ const DEFAULT_DATA: AppData = {
     activeTahunAjaran: '',
     dashboardTitle: 'Sistem Surat',
     suratHeader: DEFAULT_HEADER,
-    nsm: '111111740001',
-    npsn: '60703494',
+    nsm: '',
+    npsn: '',
     nomorSuratFormat: 'B. {nomor} /Mi.01.21/1/PP.01.1/{bulan}/{tahun}',
     customBiodata: [],
-    appName: 'MINSA',
-    schoolName: 'MIN 1 Langsa',
+    appName: 'MANAJEMEN SURAT',
+    schoolName: 'NAMA SEKOLAH',
     customLogo: '',
     customKemenagLogo: '',
     onboarded: false,
@@ -151,8 +168,8 @@ export function loadData(): AppData {
           ...parsed.settings,
           suratHeader: { ...DEFAULT_HEADER, ...(parsed.settings?.suratHeader || {}) },
           customBiodata: parsed.settings?.customBiodata || [],
-          appName: parsed.settings?.appName || 'MINSA',
-          schoolName: parsed.settings?.schoolName || 'MIN 1 Langsa',
+          appName: parsed.settings?.appName || 'MANAJEMEN SURAT',
+          schoolName: parsed.settings?.schoolName || 'NAMA SEKOLAH',
           customLogo: parsed.settings?.customLogo || '',
           customKemenagLogo: parsed.settings?.customKemenagLogo || '',
           onboarded: parsed.settings?.onboarded ?? false,
@@ -161,7 +178,8 @@ export function loadData(): AppData {
       };
     }
   } catch {}
-  return structuredClone(DEFAULT_DATA);
+  // No stored data → use system theme
+  return structuredClone({ ...DEFAULT_DATA, settings: { ...DEFAULT_DATA.settings, theme: detectSystemTheme() } });
 }
 
 export function saveData(data: AppData) {
@@ -248,16 +266,17 @@ export function generateBiodataTableHtml(selectedKeys: string[], allFields: Biod
 
 export const MADRASAH_TYPES = ['RA', 'MI', 'MIN', 'MIS', 'MTS', 'MTs', 'MTsN', 'MTSN', 'MTSS', 'MTsS', 'MA', 'MAN', 'MAS'];
 
-export function detectMadrasahInfo(schoolName: string): { type: string; city: string } | null {
+export function detectMadrasahInfo(schoolName: string): { type: string; city: string; isMadrasah: boolean } | null {
+  if (!schoolName.trim()) return null;
   const sorted = [...MADRASAH_TYPES].sort((a, b) => b.length - a.length);
   for (const type of sorted) {
     const regex = new RegExp(`^${type}\\s+`, 'i');
     if (regex.test(schoolName.trim())) {
       const rest = schoolName.trim().replace(regex, '');
-      // Remove leading numbers like "1 " from "MIN 1 Langsa"
       const city = rest.replace(/^\d+\s*/, '').trim();
-      if (city) return { type, city };
+      if (city) return { type, city, isMadrasah: true };
     }
   }
-  return null;
+  // Not a madrasah
+  return { type: '', city: '', isMadrasah: false };
 }

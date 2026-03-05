@@ -17,6 +17,7 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   confirmLabel?: string;
   cancelLabel?: string;
+  variant?: 'destructive' | 'default';
 }
 
 export const ConfirmDialog = ({
@@ -27,22 +28,28 @@ export const ConfirmDialog = ({
   onConfirm,
   confirmLabel = 'Hapus',
   cancelLabel = 'Batal',
-}: ConfirmDialogProps) => (
-  <AlertDialog open={open} onOpenChange={onOpenChange}>
-    <AlertDialogContent>
-      <AlertDialogHeader>
-        <AlertDialogTitle>{title}</AlertDialogTitle>
-        <AlertDialogDescription>{description}</AlertDialogDescription>
-      </AlertDialogHeader>
-      <AlertDialogFooter>
-        <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
-        <AlertDialogAction
-          onClick={onConfirm}
-          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-        >
-          {confirmLabel}
-        </AlertDialogAction>
-      </AlertDialogFooter>
-    </AlertDialogContent>
-  </AlertDialog>
-);
+  variant,
+}: ConfirmDialogProps) => {
+  // Auto-detect variant from title
+  const isDestructive = variant === 'destructive' || (!variant && (title.includes('Hapus') || title.includes('Logout')));
+
+  return (
+    <AlertDialog open={open} onOpenChange={onOpenChange}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{title}</AlertDialogTitle>
+          <AlertDialogDescription>{description}</AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>{cancelLabel}</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={onConfirm}
+            className={isDestructive ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}
+          >
+            {confirmLabel}
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+};

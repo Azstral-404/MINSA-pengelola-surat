@@ -1,5 +1,5 @@
 import { useApp } from '@/contexts/AppContext';
-import { Surat, JenisSurat, formatNomorSurat, KELAS_OPTIONS, getAllBiodataFields } from '@/lib/store';
+import { Surat, JenisSurat, formatNomorSurat, KELAS_OPTIONS } from '@/lib/store';
 import kemenagLogo from '@/assets/kemenag-logo.png';
 
 interface A4PreviewProps {
@@ -56,15 +56,17 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
       >
         {/* Header / KOP */}
         <div style={{ textAlign: 'center', borderBottom: '3px solid black', paddingBottom: '8px', marginBottom: '20px', position: 'relative' }}>
-          <img
-            src={logoSrc}
-            alt="Logo"
-            style={{ position: 'absolute', left: '-10mm', bottom: '5px', width: `${h.logoSize || 22}mm`, height: `${h.logoSize || 22}mm`, objectFit: 'contain', zIndex: 10 }}
-          />
-          <div style={{ fontSize: '16pt', fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.line1}</div>
-          <div style={{ fontSize: '14pt', fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.line2}</div>
-          <div style={{ fontSize: '12pt', fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.school}</div>
-          <div style={{ fontSize: '11pt', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.address}{h.contact ? ` ${h.contact}` : ''}</div>
+          {logoSrc && (
+            <img
+              src={logoSrc}
+              alt="Logo"
+              style={{ position: 'absolute', left: '-10mm', bottom: '5px', width: `${h.logoSize || 22}mm`, height: `${h.logoSize || 22}mm`, objectFit: 'contain', zIndex: 10 }}
+            />
+          )}
+          {h.line1 && <div style={{ fontSize: `${h.line1Size || 16}pt`, fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.line1}</div>}
+          {h.line2 && <div style={{ fontSize: `${h.line2Size || 14}pt`, fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.line2}</div>}
+          {h.school && <div style={{ fontSize: `${h.schoolSize || 12}pt`, fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.school}</div>}
+          {(h.address || h.contact) && <div style={{ fontSize: `${h.addressSize || 11}pt`, lineHeight: '1.0', margin: 0, padding: 0 }}>{h.address}{h.contact ? ` ${h.contact}` : ''}</div>}
         </div>
 
         {/* Judul */}

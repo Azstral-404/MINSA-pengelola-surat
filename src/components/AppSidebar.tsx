@@ -8,12 +8,12 @@ import {
 } from '@/components/ui/sidebar';
 
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === 'collapsed';
+  const { state, isMobile } = useSidebar();
+  const collapsed = state === 'collapsed' && !isMobile;
   const { data } = useApp();
 
   const logoSrc = data.settings.customLogo || minsaLogo;
-  const appName = data.settings.appName || 'MINSA';
+  const appName = data.settings.appName || 'MANAJEMEN SURAT';
 
   const suratItems = data.settings.jenisSurat.map(js => ({
     title: js.label, url: `/surat/${js.slug}`, icon: FileText,
