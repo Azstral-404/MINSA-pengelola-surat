@@ -1,113 +1,73 @@
-# Plan: Comprehensive Fixes and Enhancements
+# Plan: Fixes and Enhancements
 
-## 1. Fix PDF Export & Print
+## 1. Add Edit Confirmation for Jenis Surat and Kepala Madrasah
 
-**Problem**: Print/PDF opens a new window but doesn't properly replicate the A4 preview styling. Images may not load, styles are incomplete.
+In `Pengaturan.tsx`, wrap `saveEditJenis` and `saveEditKepala` with the existing `addConfirm` dialog pattern, using titles like "Konfirmasi Edit".
 
-**Fix in `PreviewSurat.tsx**`:
+Add a new `editConfirm` state (or reuse `addConfirm` with different label) to show confirmation before saving edits.
 
-- Rewrite `handlePrint` and `handleExportPdf` to clone the full A4 element including computed styles
-- Inline all styles and convert images to base64 before writing to the new window
-- For PDF: add a toast instructing user to "Save as PDF" in print dialog
-- For Print: ensure `w.print()` fires after images load using `onload` event
+## 2. Fix Biodata Checklist: Numbering + Reset on Insert
 
-## 2. Fix Responsive Tabs in Pengaturan
+**Numbering**: In `BiodataChecklistSection`, track selection order. When user checks "Nama", show "1" next to it; check "Alamat" next, show "2", etc. Store as ordered array (already is `selectedBiodata`). Display the index+1 next to each checked item.
 
-**Problem**: Tabs don't fill the full width of the main content area. `max-w-4xl` constrains the page.
+**Reset on Insert**: After `insertBiodataTable()` succeeds, call `onSelectedChange([])` to clear all ticks. (Currently line 141 says "Do NOT reset" — change this to reset.)
 
-**Fix in `Pengaturan.tsx**`:
+## 3. Fix Template Biodata → TambahSurat Dynamic Fields
 
-- Remove `max-w-4xl` from the container div so content fills the main area
-- Use `w-full` on all tab content containers
-- Tabs already use `flex-wrap` and `flex-1`; ensure the wrapping parent has no artificial width cap
+In `TambahSurat.tsx`, the current logic at line 27-30 checks `selectedBiodata` to determine visible fields. But it should also check if the template (`templateIsi`) contains any placeholders. If NO placeholders are detected in the template AND no `selectedBiodata` is set, only show: Jenis Surat (arah), Nomor Surat, and Kepala Madrasah.
 
-## 3. Fix Default Theme to Follow System
+**Implementation**: Scan `jenisSurat.templateIsi` for any `{placeholder}` patterns matching known biodata fields. If none found and `selectedBiodata` is empty, set `visibleFields = []`.
 
-**Problem**: Default theme is hardcoded to `'light'`.
+## 4. Fix Header Defaults Based on School Name (Onboarding)
 
-**Fix in `src/lib/store.ts` and `src/hooks/useAppData.ts**`:
+In `Onboarding.tsx` `handleSubmit`, auto-populate header fields based on detected school type:
 
-- Change default `theme` to `'system'` 
-- Actually, simpler: on first load (when `onboarded` is false and no stored data), detect system preference using `window.matchMedia('(prefers-color-scheme: dark)')` and set theme accordingly
-- In `useAppData.ts`, when theme is `'light'` and it's the first load, check system preference
+- **Baris 1**: If madrasah type detected (RA/MI/MTS/MA and variants) → `"KEMENTERIAN AGAMA REPUBLIK INDONESIA"`. Else → empty.
+- **Baris 2**: If madrasah → `"KANTOR KEMENTERIAN AGAMA KOTA {CITY}"`. Else → empty.
+- **Baris 3 (school)**: Map type to full name:
+  - RA → `"RAUDHATHUL ATHFAL {CITY}"`
+  - MI → `"MADRASAH IBTIDAIYAH {NEGERI/SWASTA} {CITY}"` (N→NEGERI, S→SWASTA from type suffix like MIN/MIS)
+  - MTs → `"MADRASAH TSANAWIYAH {NEGERI/SWASTA} {CITY}"` (N→NEGERI, S→SWASTA from type suffix like MTsN/MTsS)
+  - MA → `"MADRASAH ALIYAH {NEGERI/SWASTA} {CITY}"` (N→NEGERI, S→SWASTA from type suffix like MAN/MAS)
+  - Else → empty
 
-Better approach: just change the initial default in `DEFAULT_DATA` to detect system theme. In `loadData()`, if no stored data exists, detect system dark mode and set `theme` accordingly.
+Update `detectMadrasahInfo` in `store.ts` to also return `status: 'NEGERI' | 'SWASTA' | ''` and `baseType: 'RA' | 'MI' | 'MTS' | 'MA' | ''` for easier mapping.
 
-## 4. Fix Mobile Sidebar Text Not Showing
+**Logo**: Ensure `logoUrl` stays empty by default (already is `''` in defaults). No change needed.
 
-**Problem**: On mobile, sidebar menu items (Dashboard, Pengaturan, etc.) text doesn't show.
+**Position**: Logo and line positions in header preview and A4Preview are already using absolute positioning. No changes needed — they already work correctly.
 
-**Fix in `AppSidebar.tsx**`: The sidebar uses `collapsed` state to hide text. On mobile, the sidebar sheet should show full text. Check that the `collapsed` variable correctly reflects mobile state. The `useSidebar` hook's `state` might always be `collapsed` on mobile. Need to check — on mobile the sidebar opens as a sheet and should show text. Fix: use `isMobile` from `useSidebar` and show text when sidebar is open (as sheet) on mobile.
+## 5. Separate Kepala Madrasah into Own Card (Same Akun Tab)
 
-## 5. Fix Biodata Checklist - Don't Reset Ticks, Merge Not Duplicate
+In `Pengaturan.tsx` Akun tab, move the Kepala Madrasah section from inside the "Akun & Identitas" Card into a separate `<Card>` below it, still within `TabsContent value="akun"`.
 
-**Problem**: After clicking "Sisipkan Tabel Biodata", selected checkboxes reset. Also, inserting again duplicates instead of merging.
+**Only allow one Kepala**: Hide the add form when `kepalaMadrasah.length >= 1`. Show only the edit/view UI.
 
-**Fix in `BiodataChecklistSection**`:
+**Nama first, NIP second**: Swap field order in both add form and display.
 
-- Don't reset `selectedBiodata` after inserting — remove any reset logic
-- For merge: before inserting, scan the editor content for existing biodata table divs. Parse which fields are already present. Only insert fields that aren't already in the content. Or: replace the entire existing biodata block with the new merged set.
+**Beautiful view**: When one Kepala exists, show a styled card with avatar placeholder, name prominently, NIP below, with edit/delete buttons.
 
-Implementation: When inserting, look for existing biodata lines in the editor HTML. If found, replace the block with updated fields including both old and newly selected ones.
+## 6. Fix Print and Export PDF with jsPDF
 
-## 6. Add Confirmation for Adding Kepala, Tahun Ajaran, Jenis Surat
+Install `jspdf` and `html2canvas` packages. Rewrite `PreviewSurat.tsx`:
 
-**Fix in `Pengaturan.tsx**`:
+- **Export PDF**: Use `html2canvas` to capture `#a4-print-area` as canvas, then `jsPDF.addImage()` to create a proper PDF file that auto-downloads.
+- **Print**: Use the same `html2canvas` approach but open in a new window and trigger `window.print()`.
 
-- Add `addConfirm` state: `{ type: string; action: () => void } | null`
-- Before `addKepala`, `addTahun`, `addJenisSurat` execute, show a ConfirmDialog asking "Tambah [item]?"
-- Use a generic ConfirmDialog with `title="Konfirmasi Tambah"` and positive styling (not destructive)
+This replaces the current `openPrintWindow` approach which has styling issues.  
+  
+7. Merge  "Tempat Lahir" and "Tanggal Lahir" into "Tempat/Tanggal Lahir" at Template Biodata
 
-## 7. Move Kepala Madrasah to Akun Tab, Prevent Add it twice only one, Allow Edit
-
-**Fix in `Pengaturan.tsx**`:
-
-- Remove the `kepala` TabsContent and move its content into the `akun` tab, below the existing identity section
-- Add duplicate check: prevent adding if same `nama` already exists
-- Add edit functionality: inline edit with state for `editingKepalaId`, `editKepalaName`, `editKephalNip`
-- Remove `kepala` from TabsList
-
-## 8. Change Defaults
-
-**Fix in `src/lib/store.ts**`:
-
-- `appName`: `'MINSA'` → `'MANAJEMEN SURAT'`
-- `schoolName`: `'MIN 1 Langsa'` → `'NAMA SEKOLAH'`
-- `nsm`: `'111111740001'` → `''`
-- `npsn`: `'60703494'` → `''`
-- All `DEFAULT_HEADER` fields: set to empty strings `''`
-- `nomorSuratFormat`: keep as is (or clear)
-
-**Fix in `Layout.tsx**`: If `schoolName === 'NAMA SEKOLAH'`, hide "Kementerian Agama Kota ..." subtitle.
-
-**Fix in `Onboarding.tsx**`: 
-
-- Default `appName` to `'MANAJEMEN SURAT'`, `schoolName` to empty
-- Add NSM and NPSN fields (number-only inputs)
-- Fix detection: if school name matches madrasah types → show "Kementerian Agama Kota {city}"; else show "Kementerian Pendidikan"
-
-## 9. Header Font Size Controls + Live Preview
-
-**Fix in `Pengaturan.tsx` Header tab**:
-
-- Add `SuratHeader` fields for font sizes: `line1Size`, `line2Size`, `schoolSize`, `addressSize`, `contactSize` (defaults: 16, 14, 12, 11, 11)
-- For each header field (Baris 1 through Kontak), add a dropdown/select on the right side showing font size options (8pt–20pt)
-- Add a live A4-style preview below the inputs showing how the header looks
-
-**Fix in `src/lib/store.ts**`: Extend `SuratHeader` interface with optional size fields.
-
-**Fix in `A4Preview.tsx**`: Use the new size fields from header settings instead of hardcoded values.
+daripada "Tempat Lahir : {tempat_lahir}" "Tanggal Lahir : {tanggal lahir}" jadikan menjadi "Tempat/Tanggal Lahir : {tempat_lahir}, {tanggal_lahir}".
 
 ## Files Changed
 
 
-| File                            | Changes                                                                                                                                                                                       |
-| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/lib/store.ts`              | Change defaults (appName, schoolName, nsm, npsn, header). Add font size fields to SuratHeader. Fix `detectMadrasahInfo` for non-madrasah fallback.                                            |
-| `src/hooks/useAppData.ts`       | Detect system dark/light on first load.                                                                                                                                                       |
-| `src/pages/PreviewSurat.tsx`    | Rewrite print/PDF to properly clone styles and wait for images.                                                                                                                               |
-| `src/pages/Pengaturan.tsx`      | Remove `max-w-4xl`. Remove Kepala tab, merge into Akun. Add confirmation for add actions. Add header font size dropdowns + live preview. Fix biodata insert merge logic. Add edit for Kepala. |
-| `src/pages/Onboarding.tsx`      | Default to "MANAJEMEN SURAT". Add NSM/NPSN. Fix detection to show "Kementerian Pendidikan" for non-madrasah.                                                                                  |
-| `src/components/AppSidebar.tsx` | Fix mobile text visibility using `isMobile` from useSidebar.                                                                                                                                  |
-| `src/components/Layout.tsx`     | Hide "Kementerian Agama" when schoolName is default.                                                                                                                                          |
-| `src/components/A4Preview.tsx`  | Use dynamic font sizes from header settings.                                                                                                                                                  |
+| File                         | Changes                                                                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `src/lib/store.ts`           | Extend `detectMadrasahInfo` return type with `baseType` and `status`                                                         |
+| `src/pages/Pengaturan.tsx`   | Edit confirmations, biodata numbering + reset, Kepala in separate card with limit of 1, name-first layout, beautiful display |
+| `src/pages/TambahSurat.tsx`  | Check template for placeholders; if none, hide all biodata fields                                                            |
+| `src/pages/Onboarding.tsx`   | Auto-set header line1/line2/school based on school type detection                                                            |
+| `src/pages/PreviewSurat.tsx` | Replace print/PDF with html2canvas + jsPDF approach                                                                          |
+| `package.json`               | Add `jspdf` and `html2canvas` dependencies                                                                                   |
