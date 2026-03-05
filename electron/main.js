@@ -1,52 +1,91 @@
-const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
+/**
+ * MINSA Surat Manager — Electron Main Process
+ * Optimized for Windows 10/11, offline-first, lightweight
+ */
+
+'use strict';
+
+const { app, BrowserWindow, shell, ipcMain, dialog, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+// ── Windows 10/11 optimizations ──────────────────────────────────────────────
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
+// Smoother rendering on integrated GPU (common on school PCs)
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+// Reduce memory footprint
+app.commandLine.appendSwitch('js-flags', '--max-old-space-size=256');
+
+// ── Single instance lock ──────────────────────────────────────────────────────
+const gotLock = app.requestSingleInstanceLock();
+if (!gotLock) {
+  app.quit();
+  process.exit(0);
+}
+
+// ── App metadata ──────────────────────────────────────────────────────────────
+app.setAppUserModelId('com.azstral.minsa');
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged;
+const APP_NAME = 'MINSA-Surat-Manager';
+const APP_VERSION = app.getVersion();
 
-// Store custom user data path
-const USER_DATA_PATH_KEY = 'custom-user-data-path';
+// ── Data path management ──────────────────────────────────────────────────────
+const DATA_PATH_CONFIG_DIR = path.join(app.getPath('appData'), 'AZSTRAL-MINSA');
+const DATA_PATH_CONFIG_FILE = path.join(DATA_PATH_CONFIG_DIR, 'data-path.txt');
+
 let customDataPath = null;
 
-function getDataPathFile() {
-  return path.join(app.getPath('appData'), 'AZSTRAL-MINSA', 'data-path.txt');
+function getEffectiveDataDir() {
+  return customDataPath || path.join(app.getPath('appData'), APP_NAME);
+}
+
+function getDataFile() {
+  return path.join(getEffectiveDataDir(), 'minsa-data.json');
 }
 
 function loadCustomDataPath() {
   try {
-    const file = getDataPathFile();
-    if (fs.existsSync(file)) {
-      const p = fs.readFileSync(file, 'utf8').trim();
+    if (fs.existsSync(DATA_PATH_CONFIG_FILE)) {
+      const p = fs.readFileSync(DATA_PATH_CONFIG_FILE, 'utf8').trim();
       if (p && fs.existsSync(p)) {
         customDataPath = p;
         app.setPath('userData', p);
       }
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
 }
 
 function saveCustomDataPath(p) {
   try {
-    const file = getDataPathFile();
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, p, 'utf8');
+    fs.mkdirSync(DATA_PATH_CONFIG_DIR, { recursive: true });
+    fs.writeFileSync(DATA_PATH_CONFIG_FILE, p, 'utf8');
     customDataPath = p;
-  } catch (e) {
+    app.setPath('userData', p);
+  } catch {
     // ignore
   }
 }
 
-// Load path before app is ready
+// Load path BEFORE app.ready (critical for setPath to work)
 loadCustomDataPath();
 
-const ICON_PATH = path.join(__dirname, '../public/minsa-icon.png');
+// ── Icon path ─────────────────────────────────────────────────────────────────
+const ICON_PATH = isDev
+  ? path.join(__dirname, '../public/minsa-icon.png')
+  : path.join(process.resourcesPath, 'minsa-icon.png');
 
-// ----- Splash window -----
+// ── Window references ─────────────────────────────────────────────────────────
 let splashWin = null;
 let mainWin = null;
 
+// ── Splash screen ─────────────────────────────────────────────────────────────
 function createSplash() {
   splashWin = new BrowserWindow({
     width: 560,
@@ -62,10 +101,10 @@ function createSplash() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      devTools: false,
     },
   });
 
-  // Load inline splash HTML
   const splashHtml = `<!DOCTYPE html>
 <html>
 <head>
@@ -87,7 +126,7 @@ function createSplash() {
     top: 50%; left: 50%; transform: translate(-50%, -62%);
   }
   .logo {
-    width: 240px; height: auto; object-fit: contain;
+    width: 200px; height: auto; object-fit: contain;
     filter: drop-shadow(0 8px 28px rgba(130,90,240,0.7));
     animation: logoIn 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
     position: relative; z-index: 1;
@@ -132,15 +171,15 @@ function createSplash() {
 <body>
 <div class="glow"></div>
 <img class="logo" src="file://${ICON_PATH.replace(/\\/g, '/')}" alt="MINSA" />
-<div class="name">MINSA Surat Manager</div>
+<div class="name">MINSA SURAT MANAGER</div>
 <div class="progress-wrap">
   <div class="progress-label">
-    <span id="lbl">Memuat...</span>
+    <span id="lbl">Memuat komponen...</span>
     <span id="pct">0%</span>
   </div>
   <div class="progress-track"><div class="progress-bar" id="bar"></div></div>
 </div>
-<div class="version">v1.0.0 · AZSTRAL</div>
+<div class="version">v${APP_VERSION} · AZSTRAL</div>
 <script>
   const bar = document.getElementById('bar');
   const lbl = document.getElementById('lbl');
@@ -148,11 +187,11 @@ function createSplash() {
   const labels = ['Memuat komponen...','Mempersiapkan data...','Hampir selesai...','Siap!'];
   let p = 0;
   const t = setInterval(() => {
-    p = Math.min(p + (Math.random() * 3 + 1.5), 100);
+    p = Math.min(p + (Math.random() * 3 + 1.5), 98);
     bar.style.width = p + '%';
     pct.textContent = Math.round(p) + '%';
-    lbl.textContent = p < 30 ? labels[0] : p < 65 ? labels[1] : p < 95 ? labels[2] : labels[3];
-    if (p >= 100) clearInterval(t);
+    lbl.textContent = p < 30 ? labels[0] : p < 65 ? labels[1] : p < 90 ? labels[2] : labels[3];
+    if (p >= 98) clearInterval(t);
   }, 60);
 </script>
 </body>
@@ -162,7 +201,7 @@ function createSplash() {
   splashWin.on('closed', () => { splashWin = null; });
 }
 
-// ----- Main window -----
+// ── Main window ───────────────────────────────────────────────────────────────
 function createMainWindow() {
   mainWin = new BrowserWindow({
     width: 1280,
@@ -176,66 +215,174 @@ function createMainWindow() {
       nodeIntegration: false,
       contextIsolation: true,
       preload: path.join(__dirname, 'preload.js'),
+      devTools: isDev,
+      // Security hardening
+      webSecurity: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: false,
+      // Performance
+      backgroundThrottling: false,
     },
     title: 'MINSA Surat Manager',
+    // Windows 11 rounded corners / Mica effect support
+    roundedCorners: true,
   });
 
   if (isDev) {
     mainWin.loadURL('http://localhost:8080');
+    mainWin.webContents.openDevTools({ mode: 'detach' });
   } else {
     mainWin.loadFile(path.join(__dirname, '../dist/index.html'));
   }
 
-  // Open external links in browser
+  // Open external links in OS default browser
   mainWin.webContents.setWindowOpenHandler(({ url }) => {
-    shell.openExternal(url);
+    if (url.startsWith('https://') || url.startsWith('http://')) {
+      shell.openExternal(url);
+    }
     return { action: 'deny' };
   });
 
+  // Prevent navigation away from app
+  mainWin.webContents.on('will-navigate', (event, url) => {
+    const appUrl = isDev ? 'http://localhost:8080' : `file://${path.join(__dirname, '../dist/')}`;
+    if (!url.startsWith(appUrl) && !url.startsWith('file://')) {
+      event.preventDefault();
+    }
+  });
+
   mainWin.once('ready-to-show', () => {
-    // Close splash after main window is ready
     setTimeout(() => {
-      if (splashWin) {
-        splashWin.close();
-      }
+      if (splashWin && !splashWin.isDestroyed()) splashWin.close();
       mainWin.show();
-    }, 300);
+      mainWin.focus();
+    }, 500);
   });
 
   mainWin.on('closed', () => { mainWin = null; });
 }
 
-// ----- IPC handlers -----
+// ── Second instance: focus existing window ────────────────────────────────────
+app.on('second-instance', () => {
+  if (mainWin) {
+    if (mainWin.isMinimized()) mainWin.restore();
+    mainWin.focus();
+  }
+});
 
-// Get current data path
+// ── IPC Handlers ──────────────────────────────────────────────────────────────
+
+// Get effective data directory path
 ipcMain.handle('get-data-path', () => {
-  return customDataPath || app.getPath('userData');
+  return getEffectiveDataDir();
 });
 
 // Open folder picker for data path
 ipcMain.handle('choose-data-path', async () => {
+  if (!mainWin) return null;
   const result = await dialog.showOpenDialog(mainWin, {
     title: 'Pilih Folder Penyimpanan Data',
     defaultPath: customDataPath || app.getPath('documents'),
     properties: ['openDirectory', 'createDirectory'],
-    buttonLabel: 'Pilih Folder',
+    buttonLabel: 'Pilih Folder Ini',
   });
   if (!result.canceled && result.filePaths.length > 0) {
-    const chosen = result.filePaths[0];
-    saveCustomDataPath(chosen);
-    return chosen;
+    saveCustomDataPath(result.filePaths[0]);
+    return result.filePaths[0];
   }
   return null;
 });
 
-// ----- App lifecycle -----
+// ── File-based JSON storage (replaces localStorage for reliability) ────────────
+
+ipcMain.handle('storage-read', () => {
+  try {
+    const file = getDataFile();
+    if (!fs.existsSync(file)) return null;
+    return fs.readFileSync(file, 'utf8');
+  } catch {
+    return null;
+  }
+});
+
+ipcMain.handle('storage-write', (_event, jsonString) => {
+  try {
+    const dir = getEffectiveDataDir();
+    fs.mkdirSync(dir, { recursive: true });
+    const file = getDataFile();
+    // Write to temp file first, then rename (atomic write — prevents corruption)
+    const tmp = file + '.tmp';
+    fs.writeFileSync(tmp, jsonString, 'utf8');
+    fs.renameSync(tmp, file);
+    return true;
+  } catch (e) {
+    console.error('storage-write failed:', e);
+    return false;
+  }
+});
+
+// Backup: export data to user-chosen location
+ipcMain.handle('storage-export', async (_event, jsonString) => {
+  if (!mainWin) return false;
+  const result = await dialog.showSaveDialog(mainWin, {
+    title: 'Ekspor Data MINSA',
+    defaultPath: path.join(app.getPath('documents'), `minsa-backup-${Date.now()}.json`),
+    filters: [{ name: 'JSON Data', extensions: ['json'] }],
+    buttonLabel: 'Simpan Backup',
+  });
+  if (result.canceled || !result.filePath) return false;
+  try {
+    fs.writeFileSync(result.filePath, jsonString, 'utf8');
+    return result.filePath;
+  } catch {
+    return false;
+  }
+});
+
+// Restore: import data from user-chosen file
+ipcMain.handle('storage-import', async () => {
+  if (!mainWin) return null;
+  const result = await dialog.showOpenDialog(mainWin, {
+    title: 'Impor Data MINSA',
+    defaultPath: app.getPath('documents'),
+    properties: ['openFile'],
+    filters: [{ name: 'JSON Data', extensions: ['json'] }],
+    buttonLabel: 'Impor File Ini',
+  });
+  if (result.canceled || !result.filePaths[0]) return null;
+  try {
+    return fs.readFileSync(result.filePaths[0], 'utf8');
+  } catch {
+    return null;
+  }
+});
+
+// Open data folder in Explorer
+ipcMain.handle('open-data-folder', () => {
+  const dir = getEffectiveDataDir();
+  fs.mkdirSync(dir, { recursive: true });
+  shell.openPath(dir);
+});
+
+// App info
+ipcMain.handle('get-app-info', () => ({
+  version: APP_VERSION,
+  dataPath: getEffectiveDataDir(),
+  platform: process.platform,
+  arch: process.arch,
+  osVersion: os.release(),
+}));
+
+// Theme: sync Electron native theme with app theme
+ipcMain.handle('set-native-theme', (_event, theme) => {
+  nativeTheme.themeSource = theme; // 'light' | 'dark' | 'system'
+});
+
+// ── App lifecycle ─────────────────────────────────────────────────────────────
 app.whenReady().then(() => {
   createSplash();
-
-  // Load main window while splash is visible
-  setTimeout(() => {
-    createMainWindow();
-  }, 400);
+  // Start loading main window in background while splash shows
+  setTimeout(createMainWindow, 300);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
@@ -244,4 +391,9 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
+});
+
+// Prevent loading remote resources (security)
+app.on('web-contents-created', (_event, contents) => {
+  contents.on('will-attach-webview', (e) => { e.preventDefault(); });
 });

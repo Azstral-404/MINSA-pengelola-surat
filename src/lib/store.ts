@@ -160,42 +160,114 @@ const DEFAULT_DATA: AppData = {
 
 const STORAGE_KEY = 'minsa-data';
 
+// ── Electron API detection ────────────────────────────────────────────────────
+declare global {
+  interface Window {
+    electronAPI?: {
+      isElectron: boolean;
+      getDataPath: () => Promise<string>;
+      chooseDataPath: () => Promise<string | null>;
+      openDataFolder: () => Promise<void>;
+      storageRead: () => Promise<string | null>;
+      storageWrite: (json: string) => Promise<boolean>;
+      exportData: (json: string) => Promise<string | false>;
+      importData: () => Promise<string | null>;
+      getAppInfo: () => Promise<{ version: string; dataPath: string; platform: string; arch: string; osVersion: string }>;
+      setNativeTheme: (theme: 'light' | 'dark' | 'system') => Promise<void>;
+    };
+  }
+}
+
+export const isElectron = typeof window !== 'undefined' && !!window.electronAPI?.isElectron;
+
+// ── Parse raw JSON into typed AppData ─────────────────────────────────────────
+function parseRawData(raw: string): AppData | null {
+  try {
+    const parsed = JSON.parse(raw);
+    return {
+      ...DEFAULT_DATA,
+      ...parsed,
+      settings: {
+        ...DEFAULT_DATA.settings,
+        ...parsed.settings,
+        customBiodata: parsed.settings?.customBiodata || [],
+        appName: parsed.settings?.appName || 'MANAJEMEN SURAT',
+        schoolName: parsed.settings?.schoolName || 'NAMA SEKOLAH',
+        kabupaten: parsed.settings?.kabupaten || '',
+        customLogo: parsed.settings?.customLogo || '',
+        customKemenagLogo: parsed.settings?.customKemenagLogo || '',
+        onboarded: parsed.settings?.onboarded ?? false,
+        suratHeader: {
+          ...DEFAULT_HEADER,
+          ...(parsed.settings?.suratHeader || {}),
+          schoolSub: parsed.settings?.suratHeader?.schoolSub || '',
+          schoolSubSize: parsed.settings?.suratHeader?.schoolSubSize || 10,
+        },
+      },
+      surat: (parsed.surat || []).map((s: any) => ({
+        ...s,
+        arah: s.arah || 'keluar',
+        extraFields: s.extraFields || {},
+      })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── Sync load (used on startup from localStorage fallback or cached value) ────
 export function loadData(): AppData {
+  // In Electron, we prime from localStorage cache; async refresh happens in useAppData
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        ...DEFAULT_DATA,
-        ...parsed,
-        settings: {
-          ...DEFAULT_DATA.settings,
-          ...parsed.settings,
-          // suratHeader merged below
-          customBiodata: parsed.settings?.customBiodata || [],
-          appName: parsed.settings?.appName || 'MANAJEMEN SURAT',
-          schoolName: parsed.settings?.schoolName || 'NAMA SEKOLAH',
-          kabupaten: parsed.settings?.kabupaten || '',
-          customLogo: parsed.settings?.customLogo || '',
-          customKemenagLogo: parsed.settings?.customKemenagLogo || '',
-          onboarded: parsed.settings?.onboarded ?? false,
-          suratHeader: {
-            ...DEFAULT_HEADER,
-            ...(parsed.settings?.suratHeader || {}),
-            schoolSub: parsed.settings?.suratHeader?.schoolSub || '',
-            schoolSubSize: parsed.settings?.suratHeader?.schoolSubSize || 10,
-          },
-        },
-        surat: (parsed.surat || []).map((s: any) => ({ ...s, arah: s.arah || 'keluar', extraFields: s.extraFields || {} })),
-      };
+      const parsed = parseRawData(raw);
+      if (parsed) return parsed;
     }
-  } catch {}
-  // No stored data → use system theme
+  } catch { /* ignore */ }
   return structuredClone({ ...DEFAULT_DATA, settings: { ...DEFAULT_DATA.settings, theme: detectSystemTheme() } });
 }
 
-export function saveData(data: AppData) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+// ── Async load — reads from Electron file storage when available ───────────────
+export async function loadDataAsync(): Promise<AppData> {
+  if (isElectron && window.electronAPI) {
+    try {
+      const raw = await window.electronAPI.storageRead();
+      if (raw) {
+        const parsed = parseRawData(raw);
+        if (parsed) {
+          // Keep localStorage in sync for sync reads
+          localStorage.setItem(STORAGE_KEY, raw);
+          return parsed;
+        }
+      }
+    } catch { /* fallback below */ }
+  }
+  return loadData();
+}
+
+// ── Save — writes to Electron file AND localStorage ───────────────────────────
+export function saveData(data: AppData): void {
+  const json = JSON.stringify(data);
+  // Always keep localStorage updated (fast sync read)
+  try { localStorage.setItem(STORAGE_KEY, json); } catch { /* ignore */ }
+  // Also write to file in Electron (reliable, survives cache clears)
+  if (isElectron && window.electronAPI) {
+    window.electronAPI.storageWrite(json).catch(() => { /* silent */ });
+  }
+}
+
+// ── Backup & restore helpers ──────────────────────────────────────────────────
+export async function exportDataToFile(data: AppData): Promise<string | false> {
+  if (!isElectron || !window.electronAPI) return false;
+  return window.electronAPI.exportData(JSON.stringify(data, null, 2));
+}
+
+export async function importDataFromFile(): Promise<AppData | null> {
+  if (!isElectron || !window.electronAPI) return null;
+  const raw = await window.electronAPI.importData();
+  if (!raw) return null;
+  return parseRawData(raw);
 }
 
 export function generateId(): string {
