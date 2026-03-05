@@ -1,134 +1,90 @@
-# MINSA Surat Manager — Panduan Build Windows Desktop
+# MINSA Surat Manager — Build Guide
 
-## Prasyarat
+## Prerequisites
 
-| Software | Versi | Download |
-|---|---|---|
-| **Node.js** | 18 LTS atau 20 LTS | https://nodejs.org |
-| **Git** | Terbaru | https://git-scm.com |
-| **Windows 10/11** | x64 | — |
+- **Node.js** 18+ (recommended: LTS)
+- **npm** 9+ (comes with Node.js)
+- Windows 10/11 (for building Windows installers)
 
-> **Bun** (opsional tapi lebih cepat): https://bun.sh
+## Setup
 
----
-
-## Cara Cepat (Direkomendasikan)
-
-```
-1. Clone atau download repository ini
-2. Jalankan: build-installer.bat
-3. Ikuti pilihan di layar
-4. Hasil ada di folder: dist-electron\
-```
-
----
-
-## Cara Manual (Command Line)
-
-### Install dependencies
 ```bash
 npm install
-# atau
-bun install
 ```
 
-### Jalankan di mode development
+> If you see warnings about optional dependencies, that is normal — rollup platform binaries
+> are optional and npm will install only the one matching your OS.
+
+## Web Development
+
+```bash
+npm run dev
+```
+
+Opens at `http://localhost:8080`
+
+## Electron Development
+
 ```bash
 npm run electron:dev
 ```
 
-### Build semua installer sekaligus
+## Building Windows Installers
+
+### All formats (NSIS installer + MSI + Portable EXE)
+
 ```bash
 npm run electron:build:all
 ```
 
-Output: `dist-electron/`
+Output: `dist-electron/` folder
 
----
+### Individual formats
 
-## Jenis Installer
+```bash
+# NSIS installer (.exe setup)
+npm run electron:build:nsis
 
-| Perintah | Output | Keterangan |
-|---|---|---|
-| `npm run electron:build:nsis` | `*-Setup-x.x.x.exe` | Installer standar (NSIS), recommended |
-| `npm run electron:build:msi` | `*.msi` | Windows Installer — cocok untuk deploy IT |
-| `npm run electron:build:portable` | `*-Portable-x.x.x.exe` | Tanpa install, langsung jalan |
-| `npm run electron:build:msix` | `*.msix` | Windows Store / sideload (perlu sertifikat) |
-| `npm run electron:build:all` | Semua di atas | Build semua sekaligus |
+# MSI installer
+npm run electron:build:msi
 
----
-
-## Tentang MSIX
-
-MSIX memerlukan **code signing certificate** untuk distribusi publik.
-
-Untuk testing di komputer sendiri:
-1. Buka **Settings → Update & Security → For Developers**
-2. Aktifkan **Developer Mode**
-3. Jalankan `npm run electron:build:msix`
-4. Install `.msix` dengan klik kanan → Install
-
-Untuk distribusi tanpa certificate, gunakan **NSIS (.exe)** atau **MSI**.
-
----
-
-## Data Aplikasi
-
-Data tersimpan di:
-- **Default**: `%APPDATA%\MINSA-Surat-Manager\minsa-data.json`
-- **Custom**: Bisa diubah di Pengaturan → Lokasi Data
-
-Data **tidak** dihapus saat uninstall (kecuali user memilih "Ya" saat uninstall).
-
-### Backup & Restore
-Di dalam aplikasi: **Pengaturan → Ekspor / Impor Data**
-
----
+# Portable EXE (no installation needed)
+npm run electron:build:portable
+```
 
 ## Troubleshooting
 
-**Build gagal dengan error "electron-builder not found"**
+### `Cannot find package 'vite'`
+
+Run `npm install` first. Make sure you are in the project root directory.
+
+### `@rollup/rollup-linux-x64-gnu` not found on Windows
+
+This is expected — rollup uses platform-specific binaries. The Windows binary
+(`@rollup/rollup-win32-x64-msvc`) is listed as optional and will be installed
+automatically by npm on Windows.
+
+### Build fails with `lovable-tagger` error
+
+`lovable-tagger` is only used in development mode and is optional for builds.
+The `vite.config.ts` handles its absence gracefully.
+
+### MSI build fails
+
+Ensure you have the [WiX Toolset](https://wixtoolset.org/) installed, or
+use only NSIS/portable targets:
+
 ```bash
-npm install --save-dev electron-builder
+npm run electron:build:nsis
+npm run electron:build:portable
 ```
 
-**Error "Cannot read properties of undefined" saat build**
-- Pastikan `vite build` berhasil terlebih dahulu
-- Cek folder `dist/` ada dan berisi file
+## Output Files
 
-**MSIX error "Certificate not found"**
-- Aktifkan Developer Mode di Windows
-- Atau beli/buat self-signed certificate
+After a successful build, find installers in `dist-electron/`:
 
-**Aplikasi tidak bisa dibuka setelah install**
-- Klik kanan → Properties → Unblock
-- Atau buka Windows Defender → Allow this app
-
----
-
-## Struktur Output
-
-```
-dist-electron/
-├── MINSA-Surat-Manager-Setup-1.0.0.exe   ← NSIS installer
-├── MINSA-Surat-Manager-1.0.0.msi          ← MSI installer
-├── MINSA-Surat-Manager-Portable-1.0.0.exe ← Portable (no install)
-└── MINSA-Surat-Manager-1.0.0.msix         ← MSIX (jika di-build)
-```
-
----
-
-## Spesifikasi Minimum
-
-| | Minimum |
-|---|---|
-| OS | Windows 10 (Build 10240) x64 |
-| RAM | 512 MB (512 MB bebas) |
-| Storage | 200 MB |
-| CPU | Any x64 processor |
-
----
-
-## Lisensi
-
-Copyright © 2025 AZSTRAL. All rights reserved.
+| File | Description |
+|------|-------------|
+| `MINSA-Surat-Manager-Setup-x.x.x.exe` | NSIS installer (recommended) |
+| `MINSA-Surat-Manager-x.x.x.msi` | MSI installer |
+| `MINSA-Surat-Manager-Portable-x.x.x.exe` | Portable EXE (no install needed) |
