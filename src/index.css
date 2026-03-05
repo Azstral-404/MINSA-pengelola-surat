@@ -873,3 +873,69 @@
     margin: 0;
   }
 }
+
+/* Theme-aware scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(215.4 16.3% 46.9%);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(215.4 16.3% 56.9%);
+}
+
+/* Dark theme scrollbar */
+.dark ::-webkit-scrollbar-thumb,
+[data-theme="default"].dark ::-webkit-scrollbar-thumb,
+[data-theme="emerald"].dark ::-webkit-scrollbar-thumb,
+[data-theme="ocean"].dark ::-webkit-scrollbar-thumb,
+[data-theme="sunset"].dark ::-webkit-scrollbar-thumb,
+[data-theme="royal"].dark ::-webkit-scrollbar-thumb,
+[data-theme="rose"].dark ::-webkit-scrollbar-thumb,
+[data-theme="teal"].dark ::-webkit-scrollbar-thumb,
+[data-theme="amber"].dark ::-webkit-scrollbar-thumb,
+[data-theme="slate"].dark ::-webkit-scrollbar-thumb,
+[data-theme="indigo"].dark ::-webkit-scrollbar-thumb,
+[data-theme="cyan"].dark ::-webkit-scrollbar-thumb,
+[data-theme="fuchsia"].dark ::-webkit-scrollbar-thumb,
+[data-theme="lime"].dark ::-webkit-scrollbar-thumb,
+[data-theme="zinc"].dark ::-webkit-scrollbar-thumb {
+  background: hsl(215 20% 35%);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="default"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="emerald"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="ocean"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="sunset"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="royal"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="rose"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="teal"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="amber"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="slate"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="indigo"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="cyan"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="fuchsia"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="lime"].dark ::-webkit-scrollbar-thumb:hover,
+[data-theme="zinc"].dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(215 20% 50%);
+}
+
+/* Firefox scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(215.4 16.3% 46.9%) transparent;
+}
+
+.dark * {
+  scrollbar-color: hsl(215 20% 35%) transparent;
+}

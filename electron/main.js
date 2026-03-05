@@ -113,11 +113,17 @@ function createSplash() {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
     width: 560px; height: 340px;
-    background: linear-gradient(135deg, #1a103c 0%, #2d1b69 40%, #1a103c 100%);
+    background: linear-gradient(135deg, #0f0a1f 0%, #1a103c 30%, #2d1b69 60%, #1a103c 100%);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     font-family: 'Segoe UI', system-ui, sans-serif;
     overflow: hidden; user-select: none;
+  }
+  .grid {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(rgba(130,90,240,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(130,90,240,0.03) 1px, transparent 1px);
+    background-size: 50px 50px;
+    animation: gridMove 20s linear infinite;
   }
   .bg-logo {
     position: absolute;
@@ -129,9 +135,27 @@ function createSplash() {
   }
   .glow {
     position: absolute;
-    width: 400px; height: 400px; border-radius: 50%;
+    width: 500px; height: 500px; border-radius: 50%;
     background: radial-gradient(circle, rgba(130,90,240,0.25) 0%, transparent 70%);
-    top: 50%; left: 50%; transform: translate(-50%, -62%);
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  .logo-container {
+    position: relative; z-index: 1;
+  }
+  .logo-glitch-left {
+    position: absolute; top: 0; left: 0;
+    width: 200px; height: auto;
+    opacity: 0; pointer-events: none;
+    filter: hue-rotate(90deg);
+    animation: glitchLeft 0.3s infinite;
+  }
+  .logo-glitch-right {
+    position: absolute; top: 0; left: 0;
+    width: 200px; height: auto;
+    opacity: 0; pointer-events: none;
+    filter: hue-rotate(-90deg);
+    animation: glitchRight 0.3s infinite;
   }
   .logo {
     width: 200px; height: auto; object-fit: contain;
@@ -159,8 +183,10 @@ function createSplash() {
   }
   .progress-bar {
     height: 100%; width: 0%;
-    background: linear-gradient(90deg, #7c3aed, #a78bfa);
+    background: linear-gradient(90deg, #7c3aed, #a78bfa, #7c3aed);
+    background-size: 200% 100%;
     border-radius: 2px; transition: width 0.08s linear;
+    animation: shine 2s ease-in-out infinite;
   }
   .version {
     position: absolute; bottom: 14px; right: 18px;
@@ -174,12 +200,45 @@ function createSplash() {
     from { opacity: 0; transform: translateY(8px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  @keyframes gridMove {
+    from { transform: translate(0, 0); }
+    to { transform: translate(50px, 50px); }
+  }
+  @keyframes pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.3; }
+    50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.5; }
+  }
+  @keyframes shine {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  @keyframes glitchLeft {
+    0%, 100% { transform: translate(-4px, 0); }
+    25% { transform: translate(-6px, -2px); }
+    50% { transform: translate(-2px, 2px); }
+    75% { transform: translate(-5px, 0); }
+  }
+  @keyframes glitchRight {
+    0%, 100% { transform: translate(4px, 0); }
+    25% { transform: translate(6px, 2px); }
+    50% { transform: translate(2px, -2px); }
+    75% { transform: translate(5px, 0); }
+  }
+  @media (max-width: 560px) {
+    body { width: 100%; height: 100vh; }
+    .logo, .logo-glitch-left, .logo-glitch-right { width: 160px; }
+  }
 </style>
 </head>
 <body>
+<div class="grid"></div>
 <img class="bg-logo" src="file://${ICON_PATH.replace(/\\/g, '/')}" alt="" aria-hidden="true" />
 <div class="glow"></div>
-<img class="logo" src="file://${ICON_PATH.replace(/\\/g, '/')}" alt="MINSA" />
+<div class="logo-container">
+  <img class="logo-glitch-left" src="file://${ICON_PATH.replace(/\\/g, '/')}" alt="" />
+  <img class="logo-glitch-right" src="file://${ICON_PATH.replace(/\\/g, '/')}" alt="" />
+  <img class="logo" src="file://${ICON_PATH.replace(/\\/g, '/')}" alt="MINSA" />
+</div>
 <div class="name">MINSA SURAT MANAGER</div>
 <div class="progress-wrap">
   <div class="progress-label">
@@ -195,6 +254,17 @@ function createSplash() {
   const pct = document.getElementById('pct');
   const labels = ['Memuat komponen...','Mempersiapkan data...','Hampir selesai...','Siap!'];
   let p = 0;
+  // Trigger glitch effect on load
+  setTimeout(() => {
+    const glitchLeft = document.querySelector('.logo-glitch-left');
+    const glitchRight = document.querySelector('.logo-glitch-right');
+    if (glitchLeft) glitchLeft.style.opacity = '0.8';
+    if (glitchRight) glitchRight.style.opacity = '0.8';
+    setTimeout(() => {
+      if (glitchLeft) glitchLeft.style.opacity = '0';
+      if (glitchRight) glitchRight.style.opacity = '0';
+    }, 500);
+  }, 100);
   const t = setInterval(() => {
     p = Math.min(p + (Math.random() * 3 + 1.5), 98);
     bar.style.width = p + '%';
@@ -269,6 +339,84 @@ function createMainWindow() {
   });
 
   mainWin.on('closed', () => { mainWin = null; });
+
+  // ── Menu bar (hidden by default, show on Alt) ─────────────────────────────────
+  const Menu = require('electron').Menu;
+  let menuVisible = false;
+  
+  const appMenu = Menu.buildFromTemplate([
+    {
+      label: 'File',
+      submenu: [
+        { label: 'New Letter', accelerator: 'CmdOrCtrl+N', click: () => mainWin.webContents.send('menu-action', 'new-letter') },
+        { type: 'separator' },
+        { label: 'Export PDF', accelerator: 'CmdOrCtrl+P', click: () => mainWin.webContents.send('menu-action', 'export-pdf') },
+        { type: 'separator' },
+        { label: 'Exit', accelerator: 'Alt+F4', click: () => app.quit() }
+      ]
+    },
+    {
+      label: 'Edit',
+      submenu: [
+        { role: 'undo' },
+        { role: 'redo' },
+        { type: 'separator' },
+        { role: 'cut' },
+        { role: 'copy' },
+        { role: 'paste' },
+        { role: 'selectAll' }
+      ]
+    },
+    {
+      label: 'View',
+      submenu: [
+        { role: 'reload' },
+        { role: 'forceReload' },
+        { type: 'separator' },
+        { role: 'resetZoom' },
+        { role: 'zoomIn' },
+        { role: 'zoomOut' },
+        { type: 'separator' },
+        { role: 'togglefullscreen' }
+      ]
+    },
+    {
+      label: 'Window',
+      submenu: [
+        { role: 'minimize' },
+        { role: 'close' }
+      ]
+    },
+    {
+      label: 'Help',
+      submenu: [
+        { label: 'About MINSA Surat Manager', click: () => {
+          const { dialog } = require('electron');
+          dialog.showMessageBox(mainWin, {
+            type: 'info',
+            title: 'About MINSA Surat Manager',
+            message: 'MINSA Surat Manager v' + APP_VERSION,
+            detail: 'Aplikasi pengelola surat untuk sekolah/madrasah\n\n© 2025 AZSTRAL'
+          });
+        }}
+      ]
+    }
+  ]);
+  
+  // Set initial menu to hidden
+  Menu.setApplicationMenu(null);
+  
+  // Toggle menu on Alt key
+  mainWin.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'Alt' && input.type === 'keyDown') {
+      menuVisible = !menuVisible;
+      if (menuVisible) {
+        Menu.setApplicationMenu(appMenu);
+      } else {
+        Menu.setApplicationMenu(null);
+      }
+    }
+  });
 }
 
 // ── Second instance: focus existing window ────────────────────────────────────
@@ -385,6 +533,50 @@ ipcMain.handle('get-app-info', () => ({
 // Theme: sync Electron native theme with app theme
 ipcMain.handle('set-native-theme', (_event, theme) => {
   nativeTheme.themeSource = theme; // 'light' | 'dark' | 'system'
+});
+
+// ── Print functionality ───────────────────────────────────────────────────────
+// Get list of available printers
+ipcMain.handle('get-printers', async () => {
+  if (!mainWin) return [];
+  const printers = mainWin.webContents.getPrinters();
+  return printers.map(p => ({ name: p.name, displayName: p.displayName }));
+});
+
+// Print the document using system dialog
+ipcMain.handle('print-document', async (_event, options) => {
+  if (!mainWin) return { success: false, error: 'No window' };
+  
+  try {
+    const printOptions = {
+      silent: false, // Show system print dialog
+      printBackground: true,
+      deviceName: options.printerName || undefined,
+      copies: options.copies || 1,
+      duplexMode: options.duplex ? 'long-edge' : undefined,
+    };
+    
+    const success = await mainWin.webContents.print(printOptions);
+    return { success };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+// Print directly to PDF file
+ipcMain.handle('print-to-pdf', async (_event, options) => {
+  if (!mainWin) return { success: false, error: 'No window' };
+  
+  try {
+    const data = await mainWin.webContents.printToPDF({
+      printBackground: true,
+      pageSize: options.pageSize || 'A4',
+      landscape: options.landscape || false,
+    });
+    return { success: true, data: data.toString('base64') };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
 
 // ── App lifecycle ─────────────────────────────────────────────────────────────

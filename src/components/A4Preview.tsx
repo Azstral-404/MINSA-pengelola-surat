@@ -113,6 +113,9 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
             content: '';
             margin-bottom: 6pt;
           }
+          #a4-isi-content * {
+            color: black !important;
+          }
         `}</style>
         <div
           id="a4-isi-content"

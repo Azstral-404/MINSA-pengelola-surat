@@ -30,4 +30,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // ── Native theme sync ───────────────────────────────────────────────────────
   setNativeTheme: (theme) => ipcRenderer.invoke('set-native-theme', theme),
+
+  // ── Print functionality ─────────────────────────────────────────────────────
+  getPrinters: () => ipcRenderer.invoke('get-printers'),
+  printDocument: (options) => ipcRenderer.invoke('print-document', options),
+  printToPDF: (options) => ipcRenderer.invoke('print-to-pdf', options),
+  
+  // ── Menu actions ────────────────────────────────────────────────────────────
+  onMenuAction: (callback) => ipcRenderer.on('menu-action', (_event, action) => callback(action)),
 });

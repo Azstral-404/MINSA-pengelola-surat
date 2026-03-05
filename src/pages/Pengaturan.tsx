@@ -462,7 +462,54 @@ const Pengaturan = () => {
     e.preventDefault();
     const html = e.clipboardData.getData('text/html');
     const text = e.clipboardData.getData('text/plain');
-    const content = html || text;
+    
+    let content = html || text;
+    
+    // Clean up MS Word HTML: remove white color, fix styling issues
+    if (html) {
+      // Create a temporary element to parse and clean HTML
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      
+      // Remove all inline color styles that might cause invisible text
+      const allElements = tempDiv.querySelectorAll('*');
+      allElements.forEach(el => {
+        const style = (el as HTMLElement).style;
+        // Remove white/black text colors that cause visibility issues
+        if (style.color === 'white' || style.color === '#ffffff' || style.color === '#fff' || 
+            style.color === 'rgb(255, 255, 255)') {
+          style.removeProperty('color');
+        }
+        // Remove background colors that might hide text
+        if (style.backgroundColor === 'white' || style.backgroundColor === '#ffffff') {
+          style.removeProperty('background-color');
+        }
+        // Remove font styles that cause issues
+        if (style.fontSize === '0pt') {
+          el.remove();
+        }
+      });
+      
+      // Replace MS Word paragraphs with proper spacing
+      const paragraphs = tempDiv.querySelectorAll('p, div');
+      paragraphs.forEach(p => {
+        (p as HTMLElement).style.marginTop = '0';
+        (p as HTMLElement).style.marginBottom = '6pt';
+        (p as HTMLElement).style.lineHeight = '1.5';
+      });
+      
+      // Convert tabs to spaces
+      content = tempDiv.innerHTML.replace(/\t/g, '&nbsp;&nbsp;&nbsp;&nbsp;');
+      
+      // Remove empty paragraphs (MS Word often adds these)
+      content = content.replace(/<p[^>]*>\s*<\/p>/gi, '');
+      
+      // Remove MS Word specific comments and tags
+      content = content.replace(/<!--\[if gte mso.*?-->/gi, '');
+      content = content.replace(/<!--\[if !supportLists\]-->/gi, '');
+      content = content.replace(/<!\[endif\]-->/gi, '');
+    }
+    
     document.execCommand('insertHTML', false, content);
   };
 
