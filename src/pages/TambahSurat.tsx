@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
-import { generateId, KELAS_OPTIONS, getAllBiodataFields } from '@/lib/store';
+import { generateId, KELAS_OPTIONS, getAllBiodataFields, extractBiodataKeysFromTemplate } from '@/lib/store';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,11 +36,14 @@ const TambahSurat = () => {
   const jenisSurat = data.settings.jenisSurat.find(j => j.slug === jenisSlug);
   const existingSurat = isEdit ? data.surat.find(s => s.id === editId) : null;
 
-  // Determine which biodata fields to show - ONLY show selected fields from Pengaturan
+  // Determine which biodata fields to show.
+  // If user adds placeholders to the template (Pengaturan > Jenis Surat), the form should auto-show matching inputs.
   const allBiodata = getAllBiodataFields(data.settings);
-  const selectedKeys = jenisSurat?.selectedBiodata || [];
-  
-  // Always show fields that are selected in Pengaturan
+  const templateKeys = jenisSurat
+    ? extractBiodataKeysFromTemplate(data.settings, `${jenisSurat.templateJudul} ${jenisSurat.templateIsi}`)
+    : [];
+  const selectedKeys = templateKeys.length > 0 ? templateKeys : (jenisSurat?.selectedBiodata || []);
+
   const visibleFields = selectedKeys.length > 0
     ? allBiodata.filter(f => selectedKeys.includes(f.key))
     : [];
@@ -110,9 +113,12 @@ const TambahSurat = () => {
         'jenisKelamin', 'kelas', 'noInduk', 'nisn', 
         'namaOrangTua', 'alamat', ...customFieldKeys, 'kepalaMadrasahId'
       ].filter(key => {
+        // tempatLahir block contains both tempatLahir + tanggalLahir UI
         if (key === 'tanggalLahir') return isFieldVisible('tempatLahir');
-        if (key === 'jenisKelamin') return isFieldVisible('tempatLahir');
-        if (key === 'kelas') return isFieldVisible('jenisKelamin');
+
+        if (key === 'jenisKelamin') return isFieldVisible('jenisKelamin');
+        if (key === 'kelas') return isFieldVisible('kelas');
+
         if (key === 'noInduk' || key === 'nisn') return isFieldVisible('noInduk') || isFieldVisible('nisn');
         if (key === 'namaOrangTua') return isFieldVisible('namaOrangTua');
         if (key === 'alamat') return isFieldVisible('alamat');
@@ -194,7 +200,7 @@ const TambahSurat = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-1 gap-4">
             {/* Always visible: Arah */}
             <div>
               <Label>Jenis Surat</Label>
@@ -271,27 +277,47 @@ const TambahSurat = () => {
               </div>
             )}
 
-            {isFieldVisible('jenisKelamin') && (
-              <div>
-                <Label>Jenis Kelamin</Label>
-                <div className="flex gap-2 mt-1">
-                  {['Laki-laki', 'Perempuan'].map(jk => (
-                    <Button key={jk} type="button" variant={form.jenisKelamin === jk ? 'default' : 'outline'} size="sm"
-                      onClick={() => setField('jenisKelamin', jk)} className="flex-1">{jk}</Button>
-                  ))}
-                </div>
-              </div>
-            )}
+            {(isFieldVisible('jenisKelamin') || isFieldVisible('kelas')) && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {isFieldVisible('jenisKelamin') && (
+                  <div>
+                    <Label>Jenis Kelamin</Label>
+                    <div className="flex gap-2 mt-1">
+                      {['Laki-laki', 'Perempuan'].map(jk => (
+                        <Button
+                          key={jk}
+                          type="button"
+                          variant={form.jenisKelamin === jk ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setField('jenisKelamin', jk)}
+                          className="flex-1"
+                        >
+                          {jk}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-            {isFieldVisible('kelas') && (
-              <div>
-                <Label>Kelas</Label>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-1">
-                  {KELAS_OPTIONS.map(k => (
-                    <Button key={k.value} type="button" variant={form.kelas === k.value ? 'default' : 'outline'} size="sm"
-                      onClick={() => setField('kelas', k.value)} className="text-xs">{k.label}</Button>
-                  ))}
-                </div>
+                {isFieldVisible('kelas') && (
+                  <div>
+                    <Label>Kelas</Label>
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mt-1">
+                      {KELAS_OPTIONS.map(k => (
+                        <Button
+                          key={k.value}
+                          type="button"
+                          variant={form.kelas === k.value ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setField('kelas', k.value)}
+                          className="text-xs"
+                        >
+                          {k.label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -378,7 +404,7 @@ const TambahSurat = () => {
               </Select>
             </div>
 
-            <div className="flex gap-2 pt-4 md:col-span-2">
+            <div className="flex gap-2 pt-4">
               <Button type="submit">{isEdit ? 'Simpan Perubahan' : 'Simpan Surat'}</Button>
               <Button type="button" variant="outline" onClick={() => navigate(-1)}>Batal</Button>
             </div>

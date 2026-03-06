@@ -335,6 +335,56 @@ export function getAllBiodataFields(settings: AppSettings): BiodataField[] {
   return [...DEFAULT_BIODATA, ...(settings.customBiodata || []).map(f => ({ ...f, isCustom: true }))];
 }
 
+export function extractBiodataKeysFromTemplate(settings: AppSettings, template: string): string[] {
+  if (!template) return [];
+
+  // Extract tokens like {nama} or {no_induk} from template HTML/text
+  const tokens = new Set<string>();
+  const re = /\{([a-zA-Z0-9_]+)\}/g;
+  let match: RegExpExecArray | null;
+  while ((match = re.exec(template)) !== null) {
+    tokens.add(match[1].trim().toLowerCase());
+  }
+
+  // Map template tokens → form keys
+  const tokenToKey: Record<string, string> = {
+    // default biodata tokens
+    nama: 'nama',
+    tempat_lahir: 'tempatLahir',
+    tanggal_lahir: 'tempatLahir',
+    jenis_kelamin: 'jenisKelamin',
+    kelas: 'kelas',
+    no_induk: 'noInduk',
+    nisn: 'nisn',
+    nama_orang_tua: 'namaOrangTua',
+    alamat: 'alamat',
+    tahun_ajaran: 'tahunAjaran',
+
+    // nomor surat formatting tokens (not biodata)
+    nomor: '',
+    bulan: '',
+    tahun: '',
+  };
+
+  const customKeys = new Set((settings.customBiodata || []).map(f => f.key.toLowerCase()));
+
+  const keys: string[] = [];
+  for (const token of tokens) {
+    const mapped = tokenToKey[token];
+    if (mapped === '') continue; // explicitly ignored tokens
+    if (mapped) {
+      keys.push(mapped);
+      continue;
+    }
+    // custom biodata uses {key}
+    if (customKeys.has(token)) keys.push(token);
+  }
+
+  // De-duplicate, preserve insertion order
+  const unique = [...new Set(keys)];
+  return unique.filter(k => k !== 'tahunAjaran'); // tahun ajaran is auto-filled, no input needed
+}
+
 export function generateBiodataTableHtml(selectedKeys: string[], allFields: BiodataField[]): string {
   const selected = selectedKeys.map(key => allFields.find(f => f.key === key)).filter(Boolean) as BiodataField[];
   if (selected.length === 0) return '';
