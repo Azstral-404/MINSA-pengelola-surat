@@ -95,7 +95,8 @@ const BiodataChecklistSection = ({
   editorRef: React.RefObject<HTMLDivElement>;
   settings: any;
 }) => {
-  const allFields = getAllBiodataFields(settings);
+  // Filter out tahunAjaran from the checklist
+  const allFields = getAllBiodataFields(settings).filter(f => f.key !== 'tahunAjaran');
 
   const toggleKey = (key: string) => {
     if (selectedBiodata.includes(key)) {
@@ -993,23 +994,42 @@ const Pengaturan = () => {
               {/* Kabupaten Picker */}
               <div className="border border-border rounded-lg p-3 space-y-2">
                 <Label className="font-medium">Kabupaten / Kota <span className="text-xs text-muted-foreground font-normal">(placeholder {'{kabupaten}'})</span></Label>
-                <div className="relative">
+                <div 
+                  className="relative" 
+                  ref={(el) => {
+                    if (el) {
+                      el.onclick = (e) => e.stopPropagation();
+                    }
+                  }}
+                >
                   <Input
                     value={kabupatenSearch}
                     onChange={e => { setKabupatenSearch(e.target.value); setShowKabupatenList(true); }}
                     onFocus={() => setShowKabupatenList(true)}
-                    onBlur={() => setTimeout(() => setShowKabupatenList(false), 150)}
+                    onBlur={() => {
+                      // Delay to allow click on dropdown item
+                      setTimeout(() => {
+                        // Check if click was outside the dropdown container
+                        const dropdown = document.querySelector('.kabupaten-dropdown');
+                        if (dropdown && !dropdown.contains(document.activeElement)) {
+                          setShowKabupatenList(false);
+                        }
+                      }, 150);
+                    }}
                     placeholder="Ketik untuk mencari kabupaten/kota..."
                     autoComplete="off"
                   />
                   {showKabupatenList && filteredKabupaten.length > 0 && (
-                    <div className="absolute z-50 left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    <div className="kabupaten-dropdown absolute z-50 left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg max-h-48 overflow-y-auto">
                       {filteredKabupaten.map(k => (
                         <button
                           key={k}
                           type="button"
                           className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
-                          onMouseDown={() => handleSelectKabupaten(k)}
+                          onMouseDown={(e) => {
+                            e.preventDefault(); // Prevent blur before click
+                            handleSelectKabupaten(k);
+                          }}
                         >
                           {k}
                         </button>
@@ -1111,18 +1131,34 @@ const Pengaturan = () => {
             <CardContent className="space-y-6">
               <div>
                 <Label className="mb-2 block">Warna Tema</Label>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-3">
-                  {COLOR_THEMES.map(ct => (
-                    <button
-                      key={ct.value}
-                      onClick={() => setColorTheme(ct.value)}
-                      className={`flex flex-col items-center gap-1 p-3 rounded-lg border-2 transition-all ${data.settings.colorTheme === ct.value ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/40'}`}
-                    >
-                      <div className="w-8 h-8 rounded-full" style={{ backgroundColor: ct.color }} />
-                      <span className="text-xs font-medium">{ct.label}</span>
-                    </button>
-                  ))}
-                </div>
+                
+                {/* Grouped themes by color family */}
+                {[
+                  { name: 'Cool', items: ['default', 'slate', 'zinc', 'indigo', 'cyan'] },
+                  { name: 'Warm', items: ['amber', 'sunset', 'rose'] },
+                  { name: 'Nature', items: ['emerald', 'teal', 'lime'] },
+                  { name: 'Royal', items: ['royal', 'fuchsia', 'ocean'] },
+                ].map(group => (
+                  <div key={group.name} className="mb-4">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">{group.name}</div>
+                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                      {group.items.map(themeValue => {
+                        const ct = COLOR_THEMES.find(t => t.value === themeValue);
+                        if (!ct) return null;
+                        return (
+                          <button
+                            key={ct.value}
+                            onClick={() => setColorTheme(ct.value)}
+                            className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all ${data.settings.colorTheme === ct.value ? 'border-primary ring-2 ring-primary/20' : 'border-border hover:border-primary/40'}`}
+                          >
+                            <div className="w-6 h-6 rounded-full" style={{ backgroundColor: ct.color }} />
+                            <span className="text-xs font-medium">{ct.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
               <div className="flex items-center justify-between p-4 rounded-lg border border-border">
                 <div className="flex items-center gap-3">

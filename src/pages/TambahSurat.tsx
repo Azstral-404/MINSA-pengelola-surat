@@ -267,6 +267,8 @@ const TambahSurat = () => {
                         mode="single"
                         selected={form.tanggalLahir ? new Date(form.tanggalLahir) : undefined}
                         onSelect={(date) => setField('tanggalLahir', date ? date.toISOString().split('T')[0] : '')}
+                        fromYear={1970}
+                        toYear={2030}
                         initialFocus
                       />
                     </PopoverContent>

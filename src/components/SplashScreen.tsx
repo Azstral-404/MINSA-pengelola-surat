@@ -83,8 +83,8 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        background: isLogoPhase 
-          ? 'transparent' 
+        background: isLogoPhase
+          ? 'transparent'
           : 'linear-gradient(135deg, #0f0a1f 0%, #1a103c 30%, #2d1b69 60%, #1a103c 100%)',
         fontFamily: "'Segoe UI', system-ui, sans-serif",
         transition: 'background 0.5s ease, opacity 0.5s ease',
@@ -264,13 +264,12 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
             MINSA Surat Manager
           </div>
 
-          {/* Progress bar - BELOW logo */}
+          {/* Progress bar - CENTERED below logo */}
           <div
             style={{
-              position: 'absolute',
-              bottom: '56px',
-              left: '50%',
-              transform: 'translateX(-50%)',
+              position: 'relative',
+              zIndex: 1,
+              marginTop: '24px',
               width: '300px',
               animation: 'splashFadeUp 0.5s ease-out 0.5s both',
             }}

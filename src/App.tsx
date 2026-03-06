@@ -46,12 +46,13 @@ const App = () => {
         <AppProvider>
           <Toaster />
           <Sonner />
-          {!splashDone && (
+          {!splashDone ? (
             <SplashScreen onFinish={() => setSplashDone(true)} />
+          ) : (
+            <HashRouter>
+              <AppRoutes />
+            </HashRouter>
           )}
-          <HashRouter>
-            <AppRoutes />
-          </HashRouter>
         </AppProvider>
       </TooltipProvider>
     </QueryClientProvider>
