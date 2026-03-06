@@ -7,6 +7,7 @@ interface SplashScreenProps {
 
 const LOAD_STEPS = [
   'Memuat komponen...',
+  'Memindai data...',
   'Mempersiapkan data...',
   'Mengonfigurasi template...',
   'Hampir selesai...',
@@ -28,8 +29,8 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
     const interval = setInterval(() => {
       current = Math.min(current + (Math.random() * 4 + 2), 100);
       setProgress(current);
-      if (current < 25) setLabel(LOAD_STEPS[0]);
-      else if (current < 50) setLabel(LOAD_STEPS[1]);
+      if (current < 15) setLabel(LOAD_STEPS[0]);
+      else if (current < 45) setLabel(LOAD_STEPS[1]);
       else if (current < 75) setLabel(LOAD_STEPS[2]);
       else if (current < 95) setLabel(LOAD_STEPS[3]);
       else setLabel(LOAD_STEPS[4]);
@@ -53,7 +54,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
   return (
     <div
       style={{
-        position: 'fixed',
+        position: 'absolute',
         inset: 0,
         zIndex: 9999,
         display: 'flex',
@@ -94,7 +95,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           width: '420px',
           height: 'auto',
           objectFit: 'contain',
-          opacity: 0.08,
+          opacity: 0.05,
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
@@ -241,7 +242,7 @@ export function SplashScreen({ onFinish }: SplashScreenProps) {
           letterSpacing: '0.05em',
         }}
       >
-        v1.0.0 · AZSTRAL
+        © Copyright 2025 AZSTRAL · v1.0.0
       </div>
 
       <style>{`
