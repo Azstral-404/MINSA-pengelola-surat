@@ -1,6 +1,25 @@
 import { useApp } from '@/contexts/AppContext';
 import { Surat, JenisSurat, formatNomorSurat, KELAS_OPTIONS } from '@/lib/store';
-import kemenagLogo from '@/assets/kemenag-logo.png';
+import kemnogLogo from '@/assets/kemenag-logo.png';
+
+// Helper: Format Indonesian date (YYYY-MM-DD -> DD Month YYYY)
+function formatIndonesianDate(dateStr: string): string {
+  if (!dateStr) return '';
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return dateStr;
+  
+  const year = parts[0];
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
+  
+  const months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  
+  const monthName = months[month - 1] || '';
+  return `${String(day).padStart(2, '0')} ${monthName} ${year}`;
+}
 
 interface A4PreviewProps {
   surat: Surat;
@@ -15,9 +34,9 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
 
   const parseTemplate = (template: string) => {
     let result = template
-      .replace(/\{nama\}/gi, '<b>' + surat.nama + '</b>')
+      .replace(/\{nama\}/gi, '<b>' + surat.nama.toUpperCase() + '</b>')
       .replace(/\{tempat_lahir\}/gi, surat.tempatLahir)
-      .replace(/\{tanggal_lahir\}/gi, surat.tanggalLahir)
+      .replace(/\{tanggal_lahir\}/gi, formatIndonesianDate(surat.tanggalLahir))
       .replace(/\{jenis_kelamin\}/gi, surat.jenisKelamin)
       .replace(/\{kelas\}/gi, () => {
         const opt = KELAS_OPTIONS.find(o => o.value === surat.kelas);
@@ -41,12 +60,16 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
   };
 
   const parsedIsi = parseTemplate(jenisSurat.templateIsi);
-  const logoSrc = h.logoUrl || (data.settings.customKemenagLogo || kemenagLogo);
+  const logoSrc = h.logoUrl || (data.settings.customKemenagLogo || kemnogLogo);
 
   // city from kabupaten setting for TTD
   const cityForTtd = kabupaten
     ? kabupaten.replace(/^(Kota|Kabupaten)\s+/i, '').trim()
     : 'Langsa';
+
+  // Format current date with leading zero
+  const today = new Date();
+  const formattedDate = `${String(today.getDate()).padStart(2, '0')} ${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][today.getMonth()]} ${today.getFullYear()}`;
 
   return (
     <div className="flex justify-center">
@@ -58,7 +81,7 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           paddingTop: '3.2mm', paddingBottom: '25.4mm',
           paddingLeft: '25.4mm', paddingRight: '25.4mm',
           fontFamily: "'Times New Roman', serif", fontSize: '12pt',
-          lineHeight: '1.5', boxSizing: 'border-box',
+          lineHeight: '1.0', boxSizing: 'border-box',
         }}
       >
         {/* Header / KOP */}
@@ -84,34 +107,34 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
           </div>
         </div>
 
-        {/* Nomor - spacing: before 0pt, after 6pt, line 1.5 */}
+        {/* Nomor - no space after, line-height 1.0 */}
         <div style={{
           textAlign: 'center',
-          marginTop: '0pt',
-          marginBottom: '6pt',
+          marginTop: '0',
+          marginBottom: '0',
           fontSize: '12pt',
           fontWeight: 'bold',
-          lineHeight: '1.5',
+          lineHeight: '1.0',
         }}>
           {formatNomorSurat(surat.nomorSurat, surat.bulan, surat.tahun, data.settings.nomorSuratFormat)}
         </div>
 
-        {/* Isi - paragraph spacing: before 0pt, after 6pt, line-height 1.5 */}
+        {/* Isi - paragraph spacing: before 0pt, after 0pt, line-height 1.0 */}
         <style>{`
           #a4-isi-content p {
-            margin-top: 0pt;
-            margin-bottom: 6pt;
-            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 0;
+            line-height: 1.0;
           }
           #a4-isi-content div {
-            margin-top: 0pt;
-            margin-bottom: 6pt;
-            line-height: 1.5;
+            margin-top: 0;
+            margin-bottom: 0;
+            line-height: 1.0;
           }
           #a4-isi-content br {
             display: block;
             content: '';
-            margin-bottom: 6pt;
+            margin-bottom: 0;
           }
           #a4-isi-content * {
             color: black !important;
@@ -119,14 +142,14 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
         `}</style>
         <div
           id="a4-isi-content"
-          style={{ textAlign: 'justify', lineHeight: '1.5' }}
+          style={{ textAlign: 'justify', lineHeight: '1.0' }}
           dangerouslySetInnerHTML={{ __html: parsedIsi }}
         />
 
-        {/* TTD */}
+        {/* TTD - formatted date with leading zero */}
         {kepala && (
           <div style={{ marginTop: '40px', paddingLeft: '100mm' }}>
-            <div>{cityForTtd}, {new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+            <div>{cityForTtd}, {formattedDate}</div>
             <div>Kepala Madrasah,</div>
             <div style={{ marginTop: '60px', fontWeight: 'bold', textDecoration: 'underline', textUnderlineOffset: '4px' }}>{kepala.nama}</div>
             {kepala.nip && <div>NIP. {kepala.nip}</div>}

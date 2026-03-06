@@ -1198,7 +1198,11 @@ const Pengaturan = () => {
         open={!!addConfirm}
         onOpenChange={(open) => !open && setAddConfirm(null)}
         title="Konfirmasi Tambah"
-        description={addConfirm ? `Apakah Anda yakin ingin menambahkan ${addConfirm.type} baru?` : ''}
+        description={addConfirm 
+          ? addConfirm.type === 'Kepala Madrasah' && namaInput
+            ? `Apakah Anda yakin ingin menambahkan ${namaInput} sebagai Kepala Madrasah?`
+            : `Apakah Anda yakin ingin menambahkan ${addConfirm.type} baru?`
+          : ''}
         confirmLabel="Tambah"
         onConfirm={() => { addConfirm?.action(); setAddConfirm(null); }}
       />

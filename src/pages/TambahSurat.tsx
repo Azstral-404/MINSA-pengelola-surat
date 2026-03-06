@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useApp } from '@/contexts/AppContext';
 import { generateId, KELAS_OPTIONS, getAllBiodataFields } from '@/lib/store';
@@ -7,7 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
+
+// Helper: Capitalize first letter of each word
+function capitalizeFirst(str: string): string {
+  if (!str) return '';
+  return str.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+// Helper: Uppercase for Nama
+function toUpperCase(str: string): string {
+  return str.toUpperCase();
+}
 
 const TambahSurat = () => {
   const { jenisSlug, id: editId } = useParams<{ jenisSlug: string; id?: string }>();
@@ -16,6 +30,8 @@ const TambahSurat = () => {
   const { data, updateData } = useApp();
   const navigate = useNavigate();
   const isEdit = !!editId;
+  const formRef = useRef<HTMLFormElement>(null);
+  const inputRefs = useRef<Map<string, HTMLInputElement>>(new Map());
 
   const jenisSurat = data.settings.jenisSurat.find(j => j.slug === jenisSlug);
   const existingSurat = isEdit ? data.surat.find(s => s.id === editId) : null;
@@ -83,6 +99,50 @@ const TambahSurat = () => {
 
   const isFieldVisible = (key: string) => visibleFields.some(f => f.key === key);
 
+  // Register input ref for Enter key navigation
+  const registerInput = useCallback((key: string, el: HTMLInputElement | null) => {
+    if (el) {
+      inputRefs.current.set(key, el);
+    }
+  }, []);
+
+  // Handle Enter key to move to next field
+  const handleKeyDown = (e: React.KeyboardEvent, currentKey: string) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      // Get all visible field keys in order
+      const fieldOrder = [
+        'nomorSurat', 'nama', 'tempatLahir', 'tanggalLahir', 
+        'jenisKelamin', 'kelas', 'noInduk', 'nisn', 
+        'namaOrangTua', 'alamat', 'kepalaMadrasahId'
+      ].filter(key => {
+        if (key === 'tanggalLahir') return isFieldVisible('tempatLahir');
+        if (key === 'jenisKelamin') return isFieldVisible('tempatLahir');
+        if (key === 'kelas') return isFieldVisible('jenisKelamin');
+        if (key === 'noInduk' || key === 'nisn') return isFieldVisible('noInduk') || isFieldVisible('nisn');
+        if (key === 'namaOrangTua') return isFieldVisible('namaOrangTua');
+        if (key === 'alamat') return isFieldVisible('alamat');
+        return key === 'nomorSurat' || key === 'nama' || key === 'kepalaMadrasahId';
+      });
+
+      const currentIndex = fieldOrder.indexOf(currentKey);
+      if (currentIndex >= 0 && currentIndex < fieldOrder.length - 1) {
+        const nextKey = fieldOrder[currentIndex + 1];
+        const nextInput = inputRefs.current.get(nextKey);
+        if (nextInput) {
+          nextInput.focus();
+        }
+      } else if (currentIndex === fieldOrder.length - 1) {
+        // Last field - submit form
+        const form = e.currentTarget.closest('form');
+        if (form) {
+          form.requestSubmit();
+        }
+      }
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isFieldVisible('nama') && !form.nama.trim()) { toast.error('Nama wajib diisi'); return; }
@@ -93,9 +153,12 @@ const TambahSurat = () => {
     if (isEdit && existingSurat) {
       updateData(d => ({
         ...d, surat: d.surat.map(s => s.id === editId ? {
-          ...s, ...form, nama: form.nama.trim(), tempatLahir: form.tempatLahir.trim(),
+          ...s, ...form, 
+          nama: form.nama.trim().toUpperCase(),
+          tempatLahir: capitalizeFirst(form.tempatLahir.trim()),
           noInduk: form.noInduk.trim(), nisn: form.nisn.trim(),
-          namaOrangTua: form.namaOrangTua.trim(), alamat: form.alamat.trim(),
+          namaOrangTua: capitalizeFirst(form.namaOrangTua.trim()), 
+          alamat: capitalizeFirst(form.alamat.trim()),
           nomorSurat: form.nomorSurat.trim(), tahunAjaran,
           updatedAt: now.toISOString(), extraFields,
         } : s),
@@ -104,11 +167,14 @@ const TambahSurat = () => {
     } else {
       const surat = {
         id: generateId(), jenisSuratId: jenisSurat.id,
-        nomorSurat: form.nomorSurat.trim(), nama: form.nama.trim(),
-        tempatLahir: form.tempatLahir.trim(), tanggalLahir: form.tanggalLahir,
+        nomorSurat: form.nomorSurat.trim(), 
+        nama: form.nama.trim().toUpperCase(),
+        tempatLahir: capitalizeFirst(form.tempatLahir.trim()), 
+        tanggalLahir: form.tanggalLahir,
         jenisKelamin: form.jenisKelamin, kelas: form.kelas,
         noInduk: form.noInduk.trim(), nisn: form.nisn.trim(),
-        namaOrangTua: form.namaOrangTua.trim(), alamat: form.alamat.trim(),
+        namaOrangTua: capitalizeFirst(form.namaOrangTua.trim()), 
+        alamat: capitalizeFirst(form.alamat.trim()),
         tahunAjaran, bulan: now.getMonth() + 1, tahun: now.getFullYear(),
         kepalaMadrasahId: form.kepalaMadrasahId, arah: form.arah,
         createdAt: now.toISOString(), updatedAt: now.toISOString(),
@@ -134,7 +200,7 @@ const TambahSurat = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
             {/* Always visible: Arah */}
             <div>
               <Label>Jenis Surat</Label>
@@ -150,18 +216,62 @@ const TambahSurat = () => {
             {/* Always visible: Nomor Surat */}
             <div>
               <Label>Nomor Surat (opsional)</Label>
-              <Input value={form.nomorSurat} onChange={e => setField('nomorSurat', e.target.value)} placeholder="Kosongkan jika belum ada" />
+              <Input 
+                value={form.nomorSurat} 
+                onChange={e => setField('nomorSurat', e.target.value)}
+                onKeyDown={(e) => handleKeyDown(e, 'nomorSurat')}
+                ref={(el) => registerInput('nomorSurat', el)}
+                placeholder="Kosongkan jika belum ada" 
+              />
             </div>
 
             {/* Dynamic biodata fields */}
             {isFieldVisible('nama') && (
-              <div><Label>Nama Lengkap *</Label><Input value={form.nama} onChange={e => setField('nama', e.target.value)} required /></div>
+              <div>
+                <Label>Nama Lengkap *</Label>
+                <Input 
+                  value={form.nama} 
+                  onChange={e => setField('nama', toUpperCase(e.target.value))}
+                  onKeyDown={(e) => handleKeyDown(e, 'nama')}
+                  ref={(el) => registerInput('nama', el)}
+                  required 
+                />
+              </div>
             )}
 
             {isFieldVisible('tempatLahir') && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div><Label>Tempat Lahir</Label><Input value={form.tempatLahir} onChange={e => setField('tempatLahir', e.target.value)} /></div>
-                <div><Label>Tanggal Lahir</Label><Input type="date" value={form.tanggalLahir} onChange={e => setField('tanggalLahir', e.target.value)} /></div>
+                <div>
+                  <Label>Tempat Lahir</Label>
+                  <Input 
+                    value={form.tempatLahir} 
+                    onChange={e => setField('tempatLahir', capitalizeFirst(e.target.value))}
+                    onKeyDown={(e) => handleKeyDown(e, 'tempatLahir')}
+                    ref={(el) => registerInput('tempatLahir', el)}
+                  />
+                </div>
+                <div>
+                  <Label>Tanggal Lahir</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className="w-full justify-start text-left font-normal"
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {form.tanggalLahir ? new Date(form.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : "Pilih tanggal"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={form.tanggalLahir ? new Date(form.tanggalLahir) : undefined}
+                        onSelect={(date) => setField('tanggalLahir', date ? date.toISOString().split('T')[0] : '')}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
               </div>
             )}
 
@@ -195,6 +305,8 @@ const TambahSurat = () => {
                   <div>
                     <Label>No. Induk</Label>
                     <Input value={form.noInduk} onChange={e => { if (/^\d*$/.test(e.target.value)) setField('noInduk', e.target.value); }}
+                      onKeyDown={(e) => handleKeyDown(e, 'noInduk')}
+                      ref={(el) => registerInput('noInduk', el)}
                       inputMode="numeric" placeholder="Angka saja" />
                   </div>
                 )}
@@ -202,6 +314,8 @@ const TambahSurat = () => {
                   <div>
                     <Label>NISN</Label>
                     <Input value={form.nisn} onChange={e => { if (/^\d*$/.test(e.target.value)) setField('nisn', e.target.value); }}
+                      onKeyDown={(e) => handleKeyDown(e, 'nisn')}
+                      ref={(el) => registerInput('nisn', el)}
                       inputMode="numeric" placeholder="Angka saja" />
                   </div>
                 )}
@@ -209,11 +323,27 @@ const TambahSurat = () => {
             )}
 
             {isFieldVisible('namaOrangTua') && (
-              <div><Label>Nama Orang Tua/Wali</Label><Input value={form.namaOrangTua} onChange={e => setField('namaOrangTua', e.target.value)} /></div>
+              <div>
+                <Label>Nama Orang Tua/Wali</Label>
+                <Input 
+                  value={form.namaOrangTua} 
+                  onChange={e => setField('namaOrangTua', capitalizeFirst(e.target.value))}
+                  onKeyDown={(e) => handleKeyDown(e, 'namaOrangTua')}
+                  ref={(el) => registerInput('namaOrangTua', el)}
+                />
+              </div>
             )}
 
             {isFieldVisible('alamat') && (
-              <div><Label>Alamat</Label><Input value={form.alamat} onChange={e => setField('alamat', e.target.value)} /></div>
+              <div>
+                <Label>Alamat</Label>
+                <Input 
+                  value={form.alamat} 
+                  onChange={e => setField('alamat', capitalizeFirst(e.target.value))}
+                  onKeyDown={(e) => handleKeyDown(e, 'alamat')}
+                  ref={(el) => registerInput('alamat', el)}
+                />
+              </div>
             )}
 
             {/* Custom biodata fields */}
@@ -228,7 +358,9 @@ const TambahSurat = () => {
             <div>
               <Label>Kepala Madrasah</Label>
               <Select value={form.kepalaMadrasahId} onValueChange={v => setField('kepalaMadrasahId', v)}>
-                <SelectTrigger><SelectValue placeholder="Pilih kepala madrasah" /></SelectTrigger>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih kepala madrasah" />
+                </SelectTrigger>
                 <SelectContent>
                   {data.settings.kepalaMadrasah.map(k => (
                     <SelectItem key={k.id} value={k.id}>{k.nama}</SelectItem>
