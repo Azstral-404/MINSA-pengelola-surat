@@ -1,4 +1,4 @@
-<!-- README.md – copy‑paste this template and fill the placeholders -->
+
 
 # <PROJECT_NAME>
 
@@ -28,7 +28,6 @@
 
 ## Installation
 ```bash
-# npm / yarn / pnpm
+# npm
 npm i <PACKAGE>
-# or
-yarn add <PACKAGE>
+
