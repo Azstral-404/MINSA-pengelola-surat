@@ -36,24 +36,14 @@ const TambahSurat = () => {
   const jenisSurat = data.settings.jenisSurat.find(j => j.slug === jenisSlug);
   const existingSurat = isEdit ? data.surat.find(s => s.id === editId) : null;
 
-  // Determine which biodata fields to show
+  // Determine which biodata fields to show - ONLY show selected fields from Pengaturan
   const allBiodata = getAllBiodataFields(data.settings);
-  const selectedKeys = jenisSurat?.selectedBiodata;
-  const hasSelection = selectedKeys && selectedKeys.length > 0;
-
-  // Check if template has any placeholders
-  const templateHasPlaceholders = (() => {
-    if (!jenisSurat?.templateIsi) return false;
-    const knownPlaceholders = allBiodata.map(f => f.placeholder);
-    return knownPlaceholders.some(p => jenisSurat.templateIsi.includes(p));
-  })();
-
-  // If no placeholders in template AND no selectedBiodata, show no biodata fields
-  const visibleFields = hasSelection
+  const selectedKeys = jenisSurat?.selectedBiodata || [];
+  
+  // Always show fields that are selected in Pengaturan
+  const visibleFields = selectedKeys.length > 0
     ? allBiodata.filter(f => selectedKeys.includes(f.key))
-    : templateHasPlaceholders
-      ? allBiodata.filter(f => !f.isCustom)
-      : [];
+    : [];
 
   const [form, setForm] = useState({
     nomorSurat: '',
@@ -97,7 +87,10 @@ const TambahSurat = () => {
   const setField = (key: string, value: string) => setForm(f => ({ ...f, [key]: value }));
   const setExtra = (key: string, value: string) => setExtraFields(f => ({ ...f, [key]: value }));
 
-  const isFieldVisible = (key: string) => visibleFields.some(f => f.key === key);
+  const isFieldVisible = (key: string) => selectedKeys.includes(key);
+  
+  // Get custom field keys for Enter key navigation
+  const customFieldKeys = visibleFields.filter(f => f.isCustom).map(f => f.key);
 
   // Register input ref for Enter key navigation
   const registerInput = useCallback((key: string, el: HTMLInputElement | null) => {
@@ -111,11 +104,11 @@ const TambahSurat = () => {
     if (e.key === 'Enter') {
       e.preventDefault();
       
-      // Get all visible field keys in order
+      // Get all visible field keys in order, including custom fields
       const fieldOrder = [
         'nomorSurat', 'nama', 'tempatLahir', 'tanggalLahir', 
         'jenisKelamin', 'kelas', 'noInduk', 'nisn', 
-        'namaOrangTua', 'alamat', 'kepalaMadrasahId'
+        'namaOrangTua', 'alamat', ...customFieldKeys, 'kepalaMadrasahId'
       ].filter(key => {
         if (key === 'tanggalLahir') return isFieldVisible('tempatLahir');
         if (key === 'jenisKelamin') return isFieldVisible('tempatLahir');
@@ -123,6 +116,7 @@ const TambahSurat = () => {
         if (key === 'noInduk' || key === 'nisn') return isFieldVisible('noInduk') || isFieldVisible('nisn');
         if (key === 'namaOrangTua') return isFieldVisible('namaOrangTua');
         if (key === 'alamat') return isFieldVisible('alamat');
+        if (customFieldKeys.includes(key)) return true;
         return key === 'nomorSurat' || key === 'nama' || key === 'kepalaMadrasahId';
       });
 
@@ -190,7 +184,7 @@ const TambahSurat = () => {
   const customVisible = visibleFields.filter(f => f.isCustom);
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-4xl mx-auto">
       <h1 className="text-xl font-bold text-foreground mb-4">
         {isEdit ? 'Edit' : 'Tambah'} {jenisSurat.label}
         <span className={`ml-2 text-xs font-bold px-2 py-0.5 rounded-full ${isMasuk ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}>
@@ -200,7 +194,7 @@ const TambahSurat = () => {
 
       <Card>
         <CardContent className="pt-6">
-          <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
+          <form ref={formRef} onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Always visible: Arah */}
             <div>
               <Label>Jenis Surat</Label>
@@ -267,8 +261,8 @@ const TambahSurat = () => {
                         mode="single"
                         selected={form.tanggalLahir ? new Date(form.tanggalLahir) : undefined}
                         onSelect={(date) => setField('tanggalLahir', date ? date.toISOString().split('T')[0] : '')}
-                        fromYear={1970}
-                        toYear={2030}
+                        fromYear={1950}
+                        toYear={new Date().getFullYear()}
                         initialFocus
                       />
                     </PopoverContent>
@@ -352,14 +346,27 @@ const TambahSurat = () => {
             {customVisible.map(field => (
               <div key={field.key}>
                 <Label>{field.label}</Label>
-                <Input value={extraFields[field.key] || ''} onChange={e => setExtra(field.key, e.target.value)} placeholder={field.label} />
+                <Input 
+                  value={extraFields[field.key] || ''} 
+                  onChange={e => setExtra(field.key, e.target.value)} 
+                  onKeyDown={(e) => handleKeyDown(e, field.key)}
+                  ref={(el) => registerInput(field.key, el)}
+                  placeholder={field.label} 
+                />
               </div>
             ))}
 
             {/* Always visible: Kepala Madrasah */}
             <div>
               <Label>Kepala Madrasah</Label>
-              <Select value={form.kepalaMadrasahId} onValueChange={v => setField('kepalaMadrasahId', v)}>
+              <Select value={form.kepalaMadrasahId} onValueChange={v => {
+                setField('kepalaMadrasahId', v);
+                // Submit form after selection
+                setTimeout(() => {
+                  const formEl = formRef.current;
+                  if (formEl) formEl.requestSubmit();
+                }, 100);
+              }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Pilih kepala madrasah" />
                 </SelectTrigger>
@@ -371,7 +378,7 @@ const TambahSurat = () => {
               </Select>
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-4 md:col-span-2">
               <Button type="submit">{isEdit ? 'Simpan Perubahan' : 'Simpan Surat'}</Button>
               <Button type="button" variant="outline" onClick={() => navigate(-1)}>Batal</Button>
             </div>

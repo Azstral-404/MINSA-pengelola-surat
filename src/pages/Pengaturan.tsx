@@ -1009,12 +1009,8 @@ const Pengaturan = () => {
                     onBlur={() => {
                       // Delay to allow click on dropdown item
                       setTimeout(() => {
-                        // Check if click was outside the dropdown container
-                        const dropdown = document.querySelector('.kabupaten-dropdown');
-                        if (dropdown && !dropdown.contains(document.activeElement)) {
-                          setShowKabupatenList(false);
-                        }
-                      }, 150);
+                        setShowKabupatenList(false);
+                      }, 200);
                     }}
                     placeholder="Ketik untuk mencari kabupaten/kota..."
                     autoComplete="off"
@@ -1025,10 +1021,11 @@ const Pengaturan = () => {
                         <button
                           key={k}
                           type="button"
-                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors"
+                          className="w-full text-left px-3 py-2 text-sm hover:bg-muted transition-colors cursor-pointer"
                           onMouseDown={(e) => {
                             e.preventDefault(); // Prevent blur before click
                             handleSelectKabupaten(k);
+                            setShowKabupatenList(false);
                           }}
                         >
                           {k}

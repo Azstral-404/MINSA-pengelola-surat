@@ -1,7 +1,6 @@
 import * as React from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { DayPicker } from "react-day-picker";
-
+import { ChevronLeft, ChevronRight, ChevronDown } from "lucide-react";
+import { DayPicker, DropdownProps } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -44,6 +43,46 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       components={{
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
+        CaptionDropdown: ({ value, onChange, id }: DropdownProps) => {
+          const currentYear = new Date().getFullYear();
+          const years = Array.from({ length: 60 }, (_, i) => currentYear - 50 + i);
+          
+          return (
+            <select
+              className="cursor-pointer bg-transparent text-sm font-medium focus:outline-none"
+              value={value}
+              onChange={(e) => onChange?.(e.target.value)}
+              id={id}
+            >
+              {years.map((year) => (
+                <option key={year} value={year}>
+                  {year}
+                </option>
+              ))}
+            </select>
+          );
+        },
+        MonthDropdown: ({ value, onChange, id }: DropdownProps) => {
+          const months = [
+            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+          ];
+          
+          return (
+            <select
+              className="cursor-pointer bg-transparent text-sm font-medium focus:outline-none mx-1"
+              value={value}
+              onChange={(e) => onChange?.(e.target.value)}
+              id={id}
+            >
+              {months.map((month, index) => (
+                <option key={month} value={index}>
+                  {month}
+                </option>
+              ))}
+            </select>
+          );
+        },
       }}
       {...props}
     />
