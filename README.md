@@ -1,6 +1,6 @@
 
 
-# <PROJECT_NAME>
+# MINSA
 
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/<USER>/<REPO>/ci.yml?branch=main&label=CI&logo=github)
 ![License](https://img.shields.io/github/license/<USER>/<REPO>?color=blue)
