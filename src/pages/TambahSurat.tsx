@@ -329,8 +329,7 @@ const TambahSurat = () => {
               </div>
             )}
 
-            {(isFieldVisible('jenisKelamin') || isFieldVisible('kelas')) && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
                 {isFieldVisible('jenisKelamin') && (
                   <div>
                     <Label>Jenis Kelamin</Label>
@@ -370,8 +369,7 @@ const TambahSurat = () => {
                     </div>
                   </div>
                 )}
-              </div>
-            )}
+
 
             {(isFieldVisible('noInduk') || isFieldVisible('nisn')) && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
