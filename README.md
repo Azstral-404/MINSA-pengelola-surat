@@ -12,14 +12,13 @@
 - [Usage](#usage)
 - [Development](#development)
 - [Scripts](#scripts)
-- [Contributing](#contributing)
 - [License](#license)
 
 ## Features
-- ✅ Cross‑platform desktop application (Windows, macOS, Linux)  
+- ✅ Desktop application (Windows)  
 - 🖥️ UI built with **HTML**, **CSS**, and **TypeScript**  
 - 🔌 Native OS integrations via Electron APIs  
-- 📦 Auto‑update support (optional)
+
 
 ## Installation
 
