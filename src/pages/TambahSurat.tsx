@@ -7,9 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { Calendar as CalendarIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Helper: Capitalize first letter of each word
@@ -252,27 +249,82 @@ const TambahSurat = () => {
                 </div>
                 <div>
                   <Label>Tanggal Lahir</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className="w-full justify-start text-left font-normal"
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {form.tanggalLahir ? new Date(form.tanggalLahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : "Pilih tanggal"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={form.tanggalLahir ? new Date(form.tanggalLahir) : undefined}
-                        onSelect={(date) => setField('tanggalLahir', date ? date.toISOString().split('T')[0] : '')}
-                        fromYear={1950}
-                        toYear={new Date().getFullYear()}
-                        initialFocus
-                      />
-                    </PopoverContent>
-                  </Popover>
+                  <div className="grid grid-cols-3 gap-2">
+                    {/* Day Select */}
+                    <Select 
+                      value={form.tanggalLahir ? form.tanggalLahir.split('-')[2] : ''} 
+                      onValueChange={(day) => {
+                        if (!form.tanggalLahir) {
+                          const today = new Date();
+                          const year = today.getFullYear().toString();
+                          const month = (today.getMonth() + 1).toString().padStart(2, '0');
+                          setField('tanggalLahir', `${year}-${month}-${day}`);
+                        } else {
+                          const parts = form.tanggalLahir.split('-');
+                          setField('tanggalLahir', `${parts[0]}-${parts[1]}-${day}`);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Tgl" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: 31 }, (_, i) => (i + 1).toString().padStart(2, '0')).map(day => (
+                          <SelectItem key={day} value={day}>{day}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Month Select */}
+                    <Select 
+                      value={form.tanggalLahir ? form.tanggalLahir.split('-')[1] : ''} 
+                      onValueChange={(month) => {
+                        if (!form.tanggalLahir) {
+                          const today = new Date();
+                          const year = today.getFullYear().toString();
+                          const day = today.getDate().toString().padStart(2, '0');
+                          setField('tanggalLahir', `${year}-${month}-${day}`);
+                        } else {
+                          const parts = form.tanggalLahir.split('-');
+                          setField('tanggalLahir', `${parts[0]}-${month}-${parts[2]}`);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Bln" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'].map((month, index) => (
+                          <SelectItem key={month} value={month}>
+                            {['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][index]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {/* Year Select */}
+                    <Select 
+                      value={form.tanggalLahir ? form.tanggalLahir.split('-')[0] : ''} 
+                      onValueChange={(year) => {
+                        if (!form.tanggalLahir) {
+                          const today = new Date();
+                          const month = (today.getMonth() + 1).toString().padStart(2, '0');
+                          const day = today.getDate().toString().padStart(2, '0');
+                          setField('tanggalLahir', `${year}-${month}-${day}`);
+                        } else {
+                          const parts = form.tanggalLahir.split('-');
+                          setField('tanggalLahir', `${year}-${parts[1]}-${parts[2]}`);
+                        }
+                      }}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Thn" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Array.from({ length: new Date().getFullYear() - 1950 + 1 }, (_, i) => (new Date().getFullYear() - i).toString()).map(year => (
+                          <SelectItem key={year} value={year}>{year}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
             )}

@@ -1112,7 +1112,6 @@ const Pengaturan = () => {
                     {h.line1 && <div style={{ fontSize: `${h.line1Size || 16}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.line1}</div>}
                     {h.line2 && <div style={{ fontSize: `${h.line2Size || 14}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.line2}</div>}
                     {h.school && <div style={{ fontSize: `${h.schoolSize || 12}pt`, fontWeight: 'bold', lineHeight: '1.0' }}>{h.school}</div>}
-                    {kabupaten && <div style={{ fontSize: '10pt', lineHeight: '1.0' }}>{buildSchoolSub(kabupaten)}</div>}
                     {(h.address || h.contact) && <div style={{ fontSize: `${h.addressSize || 11}pt`, lineHeight: '1.0' }}>{h.address}{h.contact ? ` ${h.contact}` : ''}</div>}
                   </div>
                 </div>

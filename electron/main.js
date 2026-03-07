@@ -537,11 +537,12 @@ ipcMain.handle('set-native-theme', (_event, theme) => {
 
 // ── Print functionality ───────────────────────────────────────────────────────
 // Get list of available printers
-ipcMain.handle('get-printers', async () => {
-  const printers = event.sender.getPrinters();   // <-- always defined
+ipcMain.handle('get-printers', async (event) => {
+  const printers = event.sender.getPrinters();
   return printers.map(p => ({
     name: p.name,
-    displayName: p.displayName }));
+    displayName: p.displayName
+  }));
 });
 
 // Print the document using system dialog

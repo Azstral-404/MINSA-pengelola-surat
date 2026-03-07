@@ -7,6 +7,44 @@ import { buttonVariants } from "@/components/ui/button";
 export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({ className, classNames, showOutsideDays = true, ...props }: CalendarProps) {
+  // Custom caption with both month and year dropdowns always visible
+  const CustomCaption = ({ displayMonth, onMonthChange }: any) => {
+    const currentYear = new Date().getFullYear();
+    const minYear = 1900;
+    const maxYear = currentYear;
+    const years = [];
+    for (let y = minYear; y <= maxYear; y++) years.push(y);
+    const months = [
+      "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+      "Juli", "Agustus", "September", "Oktober", "November", "Desember"
+    ];
+    const month = displayMonth.getMonth();
+    const year = displayMonth.getFullYear();
+    return (
+      <div className="flex items-center justify-center gap-2">
+        <select
+          className="cursor-pointer bg-transparent text-sm font-medium focus:outline-none mx-1"
+          value={month}
+          onChange={e => onMonthChange(new Date(year, Number(e.target.value), 1))}
+        >
+          {months.map((m, idx) => (
+            <option key={m} value={idx}>{m}</option>
+          ))}
+        </select>
+        <select
+          className="cursor-pointer bg-transparent text-sm font-medium focus:outline-none"
+          value={year}
+          onChange={e => onMonthChange(new Date(Number(e.target.value), month, 1))}
+          style={{ minWidth: 70 }}
+        >
+          {years.map(y => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+    );
+  };
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
@@ -43,46 +81,7 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
       components={{
         IconLeft: ({ ..._props }) => <ChevronLeft className="h-4 w-4" />,
         IconRight: ({ ..._props }) => <ChevronRight className="h-4 w-4" />,
-        CaptionDropdown: ({ value, onChange, id }: DropdownProps) => {
-          const currentYear = new Date().getFullYear();
-          const years = Array.from({ length: 60 }, (_, i) => currentYear - 50 + i);
-          
-          return (
-            <select
-              className="cursor-pointer bg-transparent text-sm font-medium focus:outline-none"
-              value={value}
-              onChange={(e) => onChange?.(e.target.value)}
-              id={id}
-            >
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          );
-        },
-        MonthDropdown: ({ value, onChange, id }: DropdownProps) => {
-          const months = [
-            "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-            "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-          ];
-          
-          return (
-            <select
-              className="cursor-pointer bg-transparent text-sm font-medium focus:outline-none mx-1"
-              value={value}
-              onChange={(e) => onChange?.(e.target.value)}
-              id={id}
-            >
-              {months.map((month, index) => (
-                <option key={month} value={index}>
-                  {month}
-                </option>
-              ))}
-            </select>
-          );
-        },
+        Caption: CustomCaption,
       }}
       {...props}
     />
