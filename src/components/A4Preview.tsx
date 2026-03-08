@@ -184,20 +184,24 @@ export function A4Preview({ surat, jenisSurat }: A4PreviewProps) {
             }}
           >
             {/* Header / KOP */}
-
-            <div style={{ textAlign: 'center', borderBottom: '3px solid black', paddingBottom: '8px', marginBottom: '24px', position: 'relative' }}>
-              {logoSrc && (
-                <img
-                  src={logoSrc}
-                  alt="Logo"
-                  className="logo"
-                  style={{ position: 'absolute', left: '-9.5mm', bottom: '3px', width: `${h.logoSize || 22}mm`, height: `${h.logoSize || 22}mm`, objectFit: 'contain', zIndex: 10 }}
-                />
-              )}
-              {h.line1 && <div style={{ fontSize: `${h.line1Size || 16}pt`, fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.line1}</div>}
-              {h.line2 && <div style={{ fontSize: `${h.line2Size || 14}pt`, fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.line2}</div>}
-              {h.school && <div style={{ fontSize: `${h.schoolSize || 12}pt`, fontWeight: 'bold', lineHeight: '1.0', margin: 0, padding: 0 }}>{h.school}</div>}
-              {(h.address || h.contact) && <div style={{ fontSize: `${h.addressSize || 11}pt`, lineHeight: '1.0', margin: 0, padding: 0 }}>{h.address}{h.contact ? ` ${h.contact}` : ''}</div>}
+            {/* Use flex row so logo stays inside the capture boundary for html2canvas */}
+            <div style={{ borderBottom: '3px solid black', paddingBottom: '10px', marginBottom: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '10px' }}>
+                {logoSrc && (
+                  <img
+                    src={logoSrc}
+                    alt="Logo"
+                    className="logo"
+                    style={{ width: '83px', height: '83px', minWidth: '83px', maxWidth: '83px', objectFit: 'contain', flexShrink: 0 }}
+                  />
+                )}
+                <div style={{ flex: 1, textAlign: 'center' }}>
+                  {h.line1 && <div style={{ fontSize: `${h.line1Size || 16}pt`, fontWeight: 'bold', lineHeight: '1.2', margin: 0, padding: 0 }}>{h.line1}</div>}
+                  {h.line2 && <div style={{ fontSize: `${h.line2Size || 14}pt`, fontWeight: 'bold', lineHeight: '1.2', margin: 0, padding: 0 }}>{h.line2}</div>}
+                  {h.school && <div style={{ fontSize: `${h.schoolSize || 12}pt`, fontWeight: 'bold', lineHeight: '1.2', margin: 0, padding: 0 }}>{h.school}</div>}
+                  {(h.address || h.contact) && <div style={{ fontSize: `${h.addressSize || 11}pt`, lineHeight: '1.2', margin: 0, padding: 0 }}>{h.address}{h.contact ? ` ${h.contact}` : ''}</div>}
+                </div>
+              </div>
             </div>
             {/* Judul */}
             <div style={{ textAlign: 'center', marginBottom: '6px', marginTop: '12' }}>

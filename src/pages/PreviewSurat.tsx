@@ -54,14 +54,58 @@ const PreviewSurat = () => {
   };
 
   const captureA4 = async () => {
-    const el = document.getElementById('a4-print-area');
+    const el = document.getElementById('a4-print-area') as HTMLElement | null;
     if (!el) return null;
+
+    // ── 1. Remove scale transform so html2canvas sees full A4 size ──
+    const prevTransform = el.style.transform;
+    const prevTransition = el.style.transition;
+    el.style.transform = 'none';
+    el.style.transition = 'none';
+
+    // ── 2. Convert every <img> inside to base64 so html2canvas can load them ──
+    // Vite hashes asset filenames (e.g. kemenag-logo-Abc123.png) and html2canvas
+    // cannot resolve them via CORS. Inlining as base64 fixes this completely.
+    const imgs = Array.from(el.querySelectorAll('img')) as HTMLImageElement[];
+    const originalSrcs: string[] = [];
+
+    await Promise.all(imgs.map(async (img, i) => {
+      originalSrcs[i] = img.src;
+      if (!img.src || img.src.startsWith('data:')) return; // already base64
+      try {
+        const res = await fetch(img.src);
+        const blob = await res.blob();
+        await new Promise<void>((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => { img.src = reader.result as string; resolve(); };
+          reader.readAsDataURL(blob);
+        });
+      } catch {
+        // If fetch fails, leave original src — html2canvas will try useCORS
+      }
+    }));
+
+    // Small delay for DOM repaint
+    await new Promise(r => setTimeout(r, 100));
+
     const html2canvas = (await import('html2canvas')).default;
     const canvas = await html2canvas(el, {
       scale: 2,
       useCORS: true,
+      allowTaint: true,
       backgroundColor: '#ffffff',
+      width: el.scrollWidth,
+      height: el.scrollHeight,
+      windowWidth: el.scrollWidth,
+      windowHeight: el.scrollHeight,
+      logging: false,
     });
+
+    // ── 3. Restore everything ──
+    imgs.forEach((img, i) => { img.src = originalSrcs[i]; });
+    el.style.transform = prevTransform;
+    el.style.transition = prevTransition;
+
     return canvas;
   };
 
@@ -130,48 +174,40 @@ const PreviewSurat = () => {
   };
 
   const handleExportPdf = async () => {
-    // Try Electron PDF first
-    if (window.electronAPI?.isElectron) {
-      try {
-        const result = await window.electronAPI.printToPDF({
-          pageSize: 'A4',
-          landscape: false,
-        });
-        
-        if (result.success && result.data) {
-          // Convert base64 to blob and download
-          const byteCharacters = atob(result.data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url;
-          a.download = `${surat.nama || 'surat'}.pdf`;
-          a.click();
-          URL.revokeObjectURL(url);
-          toast.success('PDF berhasil diunduh');
-          return;
-        }
-      } catch (error) {
-        console.error('Electron PDF error:', error);
-      }
-    }
+    // Always use html2canvas → jsPDF to capture only the A4 letter area.
+    // printToPDF captures the whole Electron window (dark UI) — wrong output.
+    try {
+      const canvas = await captureA4();
+      if (!canvas) { toast.error('Gagal membuat PDF'); return; }
 
-    // Fallback: jsPDF
-    const canvas = await captureA4();
-    if (!canvas) return;
-    const { jsPDF } = await import('jspdf');
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = 210;
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`${surat.nama || 'surat'}.pdf`);
-    toast.success('PDF berhasil diunduh');
+      const { jsPDF } = await import('jspdf');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+      const A4_W = 210; // mm
+      const A4_H = 297; // mm
+
+      // Fit the captured image exactly onto A4
+      const imgRatio = canvas.height / canvas.width;
+      const pageRatio = A4_H / A4_W;
+
+      let imgW = A4_W;
+      let imgH = A4_W * imgRatio;
+
+      if (imgH > A4_H) {
+        imgH = A4_H;
+        imgW = A4_H / imgRatio;
+      }
+
+      const offsetX = (A4_W - imgW) / 2;
+      const offsetY = (A4_H - imgH) / 2;
+
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', offsetX, offsetY, imgW, imgH);
+      pdf.save(`${surat.nama || 'surat'}.pdf`);
+      toast.success('PDF berhasil diunduh');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      toast.error('Gagal mengekspor PDF');
+    }
   };
 
   return (
